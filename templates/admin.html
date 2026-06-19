@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Admin — ApartmentAI{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0"><i class="bi bi-shield-check text-warning me-2"></i>Administration</h4>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-primary" onclick="generateData()"><i class="bi bi-database-add me-1"></i>Générer données</button>
+    <button class="btn btn-sm btn-outline-secondary" onclick="loadStats()"><i class="bi bi-arrow-clockwise me-1"></i>Rafraîchir</button>
+  </div>
+</div>
+<!-- KPI ROW -->
+<div class="row g-3 mb-4" id="adminKpi">
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-icon bg-primary-subtle"><i class="bi bi-people text-primary"></i></div><div class="kpi-val" id="aUsers">—</div><div class="kpi-label">Utilisateurs</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-icon bg-success-subtle"><i class="bi bi-search text-success"></i></div><div class="kpi-val" id="aSearches">—</div><div class="kpi-label">Recherches</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-icon bg-danger-subtle"><i class="bi bi-heart text-danger"></i></div><div class="kpi-val" id="aFavs">—</div><div class="kpi-label">Favoris</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-icon bg-warning-subtle"><i class="bi bi-geo-alt text-warning"></i></div><div class="kpi-val" id="aTopCity">—</div><div class="kpi-label">Ville top</div></div></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">Budget moyen</div><div class="kpi-val mt-1" id="aAvgBudget" style="font-size:1.3rem">—</div></div></div>
+  <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">Surface moyenne</div><div class="kpi-val mt-1" id="aAvgSurf" style="font-size:1.3rem">—</div></div></div>
+  <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">Chambres moy.</div><div class="kpi-val mt-1" id="aAvgRooms" style="font-size:1.3rem">—</div></div></div>
+</div>
+<!-- CHARTS -->
+<div class="row g-3">
+  <div class="col-md-6"><div class="glass-card p-4"><h6 class="fw-bold mb-3"><i class="bi bi-bar-chart text-primary me-2"></i>Recherches par ville</h6><canvas id="chartCities"></canvas></div></div>
+  <div class="col-md-6"><div class="glass-card p-4"><h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-success me-2"></i>Activité quotidienne</h6><canvas id="chartDaily"></canvas></div></div>
+</div>
+<div id="genResult" class="alert alert-success mt-3 d-none"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const CHART_OPTS={responsive:true,plugins:{legend:{labels:{color:"#94a3b8"}}}};
+let chartC=null,chartD=null;
+
+async function loadStats(){
+  const r=await fetch("/api/analytics");
+  const d=await r.json();
+  document.getElementById("aUsers").textContent=d.total_users;
+  document.getElementById("aSearches").textContent=d.total_searches;
+  document.getElementById("aFavs").textContent=d.total_favorites;
+  document.getElementById("aTopCity").textContent=d.top_city;
+  document.getElementById("aAvgBudget").textContent=Number(d.avg_budget).toLocaleString("fr-MA")+" MAD";
+  document.getElementById("aAvgSurf").textContent=d.avg_surface+" m²";
+  document.getElementById("aAvgRooms").textContent=d.avg_rooms+" ch.";
+  if(chartC) chartC.destroy();
+  if(chartD) chartD.destroy();
+  const CDK={backgroundColor:["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444"],borderRadius:6};
+  chartC=new Chart(document.getElementById("chartCities"),{type:"bar",data:{labels:d.cities_chart.labels,datasets:[{label:"Recherches",...CDK,data:d.cities_chart.data}]},options:{...CHART_OPTS,scales:{x:{ticks:{color:"#94a3b8"},grid:{color:"rgba(255,255,255,.05)"}},y:{ticks:{color:"#94a3b8"},grid:{color:"rgba(255,255,255,.05)"}}}}});
+  chartD=new Chart(document.getElementById("chartDaily"),{type:"line",data:{labels:d.daily_chart.labels,datasets:[{label:"Recherches/jour",data:d.daily_chart.data,borderColor:"#10b981",backgroundColor:"rgba(16,185,129,.1)",fill:true,tension:.4}]},options:{...CHART_OPTS,scales:{x:{ticks:{color:"#94a3b8"},grid:{color:"rgba(255,255,255,.05)"}},y:{ticks:{color:"#94a3b8"},grid:{color:"rgba(255,255,255,.05)"}}}}});
+}
+
+async function generateData(){
+  spinner("Génération des données synthétiques…");
+  const r=await fetch("/api/generate-data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({n:1000})});
+  stopSpinner();
+  const d=await r.json();
+  if(d.ok){
+    const el=document.getElementById("genResult");
+    el.textContent=`✅ ${d.generated} appartements générés — Prix moy: ${Number(d.stats.avg_price).toLocaleString()} MAD — Surface moy: ${d.stats.avg_surface} m²`;
+    el.classList.remove("d-none");
+  }
+}
+
+document.addEventListener("DOMContentLoaded",loadStats);
+</script>
+{% endblock %}

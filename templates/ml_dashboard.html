@@ -1,0 +1,814 @@
+{% extends "base.html" %}
+{% block title %}ML Analytics — ApartmentAI{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── ML Dashboard styles ─────────────────────────────────── */
+.ml-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 16px;text-align:center;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.ml-kpi:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.ml-kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.ml-kpi.c-green::before{background:var(--success)}
+.ml-kpi.c-blue::before{background:var(--primary)}
+.ml-kpi.c-amber::before{background:var(--warning)}
+.ml-kpi.c-cyan::before{background:var(--accent)}
+.ml-kpi.c-purple::before{background:#8b5cf6}
+.ml-kpi.c-red::before{background:var(--danger)}
+.kpi-num{font-size:2rem;font-weight:800;line-height:1;margin:8px 0 4px}
+.kpi-lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.kpi-sub{font-size:.75rem;color:var(--muted);margin-top:4px}
+.kpi-icon2{font-size:1.4rem;margin-bottom:6px}
+
+/* Chart cards */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  overflow: hidden;
+  position: relative;
+}
+/* Apply to cards that must match the height of their taller sibling
+   (e.g. scatter chart left + model summary right in the same row). */
+.chart-card--fill { height: 100%; }
+.chart-title{font-size:.95rem;font-weight:700;margin-bottom:4px}
+.chart-sub{font-size:.75rem;color:var(--muted);margin-bottom:16px}
+
+/* Feature bar (XAI) */
+.feat-row{margin-bottom:14px}
+.feat-lbl{font-size:.82rem;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.feat-name{font-weight:600}
+.feat-pct{font-size:.9rem;font-weight:800}
+.feat-bar-bg{height:10px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.feat-bar{height:10px;border-radius:6px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+
+/* Model summary card */
+.model-card{background:linear-gradient(135deg,#1a2540 0%,#0f172a 100%);border:1px solid rgba(79,70,229,.3);border-radius:14px;padding:22px}
+.model-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,70,229,.2);border:1px solid rgba(79,70,229,.35);color:#a5b4fc;border-radius:20px;padding:4px 12px;font-size:.78rem;font-weight:600;margin-bottom:14px}
+.model-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.model-row:last-child{border-bottom:none}
+.model-k{font-size:.8rem;color:var(--muted)}
+.model-v{font-size:.88rem;font-weight:700}
+
+/* Insight card */
+.insight-pill{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;transition:border-color .2s}
+.insight-pill:hover{border-color:rgba(79,70,229,.4)}
+.insight-emoji{font-size:1.5rem;flex-shrink:0;line-height:1}
+.insight-body{}
+.insight-t{font-size:.85rem;font-weight:700;margin-bottom:2px}
+.insight-d{font-size:.77rem;color:var(--muted);line-height:1.5}
+
+/* City price row */
+.city-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.city-row:last-child{border-bottom:none}
+.city-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.city-name{font-size:.82rem;flex:1;font-weight:500}
+.city-price{font-size:.82rem;font-weight:700}
+.city-bar-bg{width:90px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;flex-shrink:0}
+.city-bar{height:5px;border-radius:3px;transition:width .8s ease}
+
+/* Bias meter */
+.bias-bar{height:16px;border-radius:8px;background:linear-gradient(90deg,#10b981 0%,#263045 50%,#ef4444 100%);position:relative;margin:8px 0}
+.bias-needle{position:absolute;top:-4px;width:4px;height:24px;background:#fff;border-radius:2px;transform:translateX(-50%);transition:left .8s ease;box-shadow:0 0 6px rgba(0,0,0,.6)}
+
+/* Qual badge */
+.qual-badge{display:inline-block;border-radius:20px;padding:4px 12px;font-size:.78rem;font-weight:700}
+.qual-excellent{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}
+.qual-good{background:rgba(6,182,212,.15);color:#67e8f9;border:1px solid rgba(6,182,212,.3)}
+.qual-fair{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+
+/* Page header gradient */
+.ml-header{background:linear-gradient(135deg,rgba(79,70,229,.12) 0%,rgba(6,182,212,.06) 100%);border:1px solid rgba(79,70,229,.2);border-radius:16px;padding:24px;margin-bottom:28px}
+
+/* Section divider */
+.sec-divider{display:flex;align-items:center;gap:12px;margin:28px 0 20px}
+.sec-divider-line{flex:1;height:1px;background:var(--border)}
+.sec-divider-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;padding:0 8px;background:var(--bg)}
+
+/* Loading overlay */
+.ml-loading{display:flex;align-items:center;justify-content:center;min-height:300px;color:var(--muted)}
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:400% 100%;animation:shimmer 1.6s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Donut total center */
+.doughnut-center{position:relative}
+.doughnut-center canvas{position:relative;z-index:1}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── HEADER ───────────────────────────────────────────────── -->
+<div class="ml-header">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <i class="bi bi-robot text-primary" style="font-size:1.4rem"></i>
+        <h4 class="fw-bold mb-0">ML Analytics Dashboard</h4>
+        <span class="badge" style="background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3);font-size:.72rem">RandomForest</span>
+      </div>
+      <p class="text-muted mb-0" style="font-size:.85rem">
+        Analyse complète du modèle d'estimation de prix immobiliers — données locales uniquement
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-primary" onclick="retrainModel()">
+        <i class="bi bi-arrow-repeat me-1"></i>Ré-entraîner
+      </button>
+      <a href="/dashboard" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOADING SKELETONS ────────────────────────────────────── -->
+<div id="mlLoading">
+  <div class="row g-3 mb-4">
+    {% for _ in range(6) %}
+    <div class="col-6 col-md-2"><div class="ml-kpi"><div class="skel" style="height:32px;width:80px;margin:0 auto 8px"></div><div class="skel mx-auto" style="height:12px;width:60px"></div></div></div>
+    {% endfor %}
+  </div>
+  <div class="row g-3">
+    {% for _ in range(4) %}
+    <div class="col-md-6"><div class="chart-card"><div class="skel" style="height:260px"></div></div></div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ─────────────────────────────────────────── -->
+<div id="mlContent" class="d-none">
+
+  <!-- ══ KPI ROW ══════════════════════════════════════════════ -->
+  <div class="row g-3 mb-4" id="kpiRow"></div>
+
+  <!-- ══ SECTION 1: PERFORMANCE + MODEL CARD ══════════════════ -->
+  <div class="sec-divider">
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-label"><i class="bi bi-speedometer2 me-1"></i>Performance du modèle</span>
+    <div class="sec-divider-line"></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Scatter: Actual vs Predicted -->
+    <div class="col-lg-7">
+      <div class="chart-card">
+        <div class="chart-title">📊 Prix réels vs Prix prédits</div>
+        <div class="chart-sub">Chaque point = 1 bien immobilier sur l'ensemble de test (120 échantillons). La ligne diagonale = prédiction parfaite.</div>
+        <div class="chart-canvas-wrapper" style="height:280px">
+          <canvas id="scatterChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Model Summary Card -->
+    <div class="col-lg-5">
+      <div class="model-card h-100">
+        <span class="model-badge"><i class="bi bi-cpu-fill me-1"></i>Résumé du modèle</span>
+        <div id="modelSummaryRows"></div>
+        <div class="mt-3 pt-2" style="border-top:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Qualité globale</div>
+          <div id="qualBadgeBox"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 1B: MODEL COMPARISON (Phase 2) ══════════════ -->
+  <div class="sec-divider">
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-label"><i class="bi bi-bar-chart-steps me-1"></i>Comparaison des modèles</span>
+    <div class="sec-divider-line"></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="chart-card">
+        <div class="chart-title">⚖️ Linear Regression vs Random Forest vs Gradient Boosting vs XGBoost</div>
+        <div class="chart-sub">Le modèle sélectionné automatiquement (RMSE le plus bas) est mis en évidence.</div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0" id="modelComparisonTable">
+            <thead>
+              <tr>
+                <th>Modèle</th>
+                <th class="text-end">MAE (MAD)</th>
+                <th class="text-end">RMSE (MAD)</th>
+                <th class="text-end">R²</th>
+                <th class="text-end">MAPE (%)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 2: FEATURE IMPORTANCE + XAI ══════════════════ -->
+  <div class="sec-divider">
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-label"><i class="bi bi-bar-chart me-1"></i>Explicabilité IA (XAI)</span>
+    <div class="sec-divider-line"></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Feature importance bar chart -->
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <div class="chart-title">🔬 Importance des variables</div>
+        <div class="chart-sub">Contribution de chaque variable au pouvoir prédictif du modèle (Gini importance).</div>
+        <div class="chart-canvas-wrapper" style="height:260px">
+          <canvas id="featChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- XAI visual bars -->
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <div class="chart-title">💡 Explication IA — Pourquoi ce prix ?</div>
+        <div class="chart-sub">Facteurs influençant le prix selon le modèle RandomForest, classés par impact.</div>
+        <div id="xaiBars" class="mt-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 3: ERROR ANALYSIS ════════════════════════════ -->
+  <div class="sec-divider">
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-label"><i class="bi bi-graph-down me-1"></i>Analyse des erreurs</span>
+    <div class="sec-divider-line"></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Error histogram -->
+    <div class="col-lg-7">
+      <div class="chart-card">
+        <div class="chart-title">📉 Distribution des erreurs de prédiction</div>
+        <div class="chart-sub">Histogramme des erreurs (prix prédit − prix réel). Centré sur zéro = modèle non biaisé.</div>
+        <div class="chart-canvas-wrapper" style="height:240px">
+          <canvas id="histChart"></canvas>
+        </div>
+        <div id="biasMeter" class="mt-3"></div>
+      </div>
+    </div>
+    <!-- Error stats + city chart -->
+    <div class="col-lg-5">
+      <div class="chart-card mb-3">
+        <div class="chart-title">🏙️ Prix moyen par ville</div>
+        <div class="chart-sub">Comparaison des marchés locaux selon les données du dataset.</div>
+        <div class="chart-canvas-wrapper" style="height:180px">
+          <canvas id="cityChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card" style="height:auto">
+        <div class="chart-title">⚖️ Biais du modèle</div>
+        <div id="biasStats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 4: BUSINESS INSIGHTS ═════════════════════════ -->
+  <div class="sec-divider">
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-label"><i class="bi bi-lightbulb me-1"></i>Business Insights</span>
+    <div class="sec-divider-line"></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Insights list: col-lg-8 -->
+    <div class="col-lg-8">
+      <div class="chart-card">
+        <div class="chart-title mb-3">📈 Insights automatiques du marché</div>
+        <div id="insightsList"></div>
+      </div>
+    </div>
+    <!-- Distribution des chambres: col-lg-4, own card, no nesting inside Biais -->
+    <div class="col-lg-4">
+      <div class="chart-card" style="height:auto">
+        <div class="chart-title mb-3">🏠 Distribution des chambres</div>
+        <div class="chart-canvas-wrapper" style="height:220px">
+          <canvas id="chambresChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 5: CITY PRICE TABLE ══════════════════════════ -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-5">
+      <div class="chart-card">
+        <div class="chart-title mb-3">📍 Prix par ville</div>
+        <div id="cityPriceTable"></div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="chart-card">
+        <div class="chart-title mb-3">🎯 Précision par fourchette de prix</div>
+        <div class="chart-sub">Répartition des prédictions selon la différence relative prix prédit / prix réel.</div>
+        <div class="chart-canvas-wrapper" style="height:200px">
+          <canvas id="precisionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /mlContent -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ML ANALYTICS DASHBOARD — JavaScript
+   All data from /api/ml-dashboard (local only, no external API)
+══════════════════════════════════════════════════════════════ */
+const PALETTE = ["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316"];
+const CITY_COLORS = { Casablanca:"#4f46e5", Marrakech:"#10b981", "Meknès":"#f59e0b", "Dar Bouazza":"#06b6d4", Tanger:"#ef4444" };
+const charts = {};
+
+function pFmt(n) { return Number(n).toLocaleString("fr-MA") + " MAD"; }
+function dc(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+/*
+  CHART_BASE — shared Chart.js options for all bar/line/scatter charts.
+
+  BUGFIX: maintainAspectRatio was previously set to true globally. This means
+  Chart.js computes chart height as (width / aspect-ratio). In a narrow column
+  (col-lg-4 or col-lg-5) that produces a canvas taller than the card, causing
+  overflow.  Setting it to false tells Chart.js "fill the container's height"
+  — which is now controlled by the .chart-canvas-wrapper div.
+
+  The wrapper has position:relative and an explicit pixel height, so Chart.js
+  has a stable, known height to fill.  No overflow occurs.
+*/
+const CHART_BASE = {
+  responsive: true,
+  maintainAspectRatio: false,   /* ← KEY FIX: wrapper controls height, not aspect ratio */
+  plugins: {
+    legend: { labels: { color: "#94a3b8", font: { size: 11 } } }
+  },
+  scales: {
+    x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } },
+    y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } }
+  }
+};
+
+async function loadDashboard() {
+  const r = await fetch("/api/ml-dashboard");
+  const d = await r.json();
+  if (d.error) { document.getElementById("mlLoading").innerHTML = `<div class="alert alert-danger">${d.error}</div>`; return; }
+  document.getElementById("mlLoading").classList.add("d-none");
+  document.getElementById("mlContent").classList.remove("d-none");
+
+  renderKPIs(d.meta, d.business);
+  renderScatter(d.scatter);
+  renderModelSummary(d.meta);
+  renderModelComparison(d.model_comparison, d.selected_model, d.xgboost_available);
+  renderFeatChart(d.importances);
+  renderXAI(d.xai_groups);
+  renderHistogram(d.histogram);
+  renderCityChart(d.business);
+  renderBiasStats(d.histogram);
+  renderInsights(d.meta, d.business, d.importances);
+  renderChambresChart(d.business.chambres_dist);
+  renderCityPriceTable(d.business);
+  renderPrecisionChart(d.scatter);
+}
+
+/* ── KPIs ──────────────────────────────────────────────────── */
+function renderKPIs(meta, biz) {
+  const kpis = [
+    { val: meta.r2,              lbl: "R² Score",       sub: "Variance expliquée",      cls: "c-green",  icon: "🎯", fmt: v => v },
+    { val: meta.mae,             lbl: "MAE",             sub: "Erreur absolue moy.",     cls: "c-amber",  icon: "📏", fmt: v => Number(v).toLocaleString()+" MAD" },
+    { val: meta.mape_pct,        lbl: "MAPE",            sub: "Erreur relative",         cls: "c-cyan",   icon: "📊", fmt: v => v+"%" },
+    { val: meta.n_estimators,    lbl: "Arbres",          sub: "dans la forêt",           cls: "c-purple", icon: "🌲", fmt: v => v },
+    { val: meta.n_train,         lbl: "Entraînement",    sub: "observations",            cls: "c-blue",   icon: "📚", fmt: v => Number(v).toLocaleString() },
+    { val: meta.n_test,          lbl: "Test (holdout)",  sub: "observations",            cls: "c-blue",   icon: "🧪", fmt: v => Number(v).toLocaleString() },
+  ];
+  document.getElementById("kpiRow").innerHTML = kpis.map(k => `
+    <div class="col-6 col-md-2">
+      <div class="ml-kpi ${k.cls}">
+        <div class="kpi-icon2">${k.icon}</div>
+        <div class="kpi-num" style="font-size:1.4rem">${k.fmt(k.val)}</div>
+        <div class="kpi-lbl">${k.lbl}</div>
+        <div class="kpi-sub">${k.sub}</div>
+      </div>
+    </div>`).join("");
+}
+
+/* ── SCATTER PLOT ──────────────────────────────────────────── */
+function renderScatter(scatter) {
+  dc("scatter");
+  const pts = scatter.actual.map((a, i) => ({ x: a, y: scatter.predicted[i] }));
+  const allV = [...scatter.actual, ...scatter.predicted];
+  const mn = Math.min(...allV), mx = Math.max(...allV);
+  const ctx = document.getElementById("scatterChart").getContext("2d");
+  charts["scatter"] = new Chart(ctx, {
+    data: {
+      datasets: [
+        { type: "scatter", label: "Biens (réel vs prédit)",
+          data: pts, backgroundColor: "rgba(79,70,229,.45)", borderColor: "rgba(79,70,229,.8)", borderWidth: 1, pointRadius: 4, pointHoverRadius: 6 },
+        { type: "line", label: "Prédiction parfaite",
+          data: [{ x: mn, y: mn }, { x: mx, y: mx }],
+          borderColor: "#10b981", borderDash: [6, 4], borderWidth: 2,
+          pointRadius: 0, fill: false },
+      ]
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: { ...CHART_BASE.plugins,
+        tooltip: { callbacks: {
+          label: ctx => {
+            if (ctx.datasetIndex === 0) {
+              const diff = ctx.parsed.y - ctx.parsed.x;
+              return [`Réel: ${pFmt(ctx.parsed.x)}`, `Prédit: ${pFmt(ctx.parsed.y)}`, `Écart: ${diff > 0 ? "+" : ""}${Number(diff).toLocaleString()} MAD`];
+            }
+            return null;
+          }
+        }}
+      },
+      scales: {
+        x: { ...CHART_BASE.scales.x, title: { display: true, text: "Prix réel (MAD)", color: "#64748b", font: { size: 11 } },
+          ticks: { ...CHART_BASE.scales.x.ticks, callback: v => (v/1000000).toFixed(1)+"M" } },
+        y: { ...CHART_BASE.scales.y, title: { display: true, text: "Prix prédit (MAD)", color: "#64748b", font: { size: 11 } },
+          ticks: { ...CHART_BASE.scales.y.ticks, callback: v => (v/1000000).toFixed(1)+"M" } }
+      }
+    }
+  });
+}
+
+/* ── MODEL SUMMARY ─────────────────────────────────────────── */
+function renderModelSummary(meta) {
+  const rows = [
+    ["Type de modèle", meta.model_type],
+    ["Nombre d'arbres", meta.n_estimators],
+    ["Dataset total", Number(meta.n_samples).toLocaleString() + " observations"],
+    ["R² Score", meta.r2],
+    ["MAE", pFmt(meta.mae)],
+    ["MAPE", meta.mape_pct + "%"],
+  ];
+  document.getElementById("modelSummaryRows").innerHTML = rows.map(([k, v]) => `
+    <div class="model-row">
+      <span class="model-k">${k}</span>
+      <span class="model-v">${v}</span>
+    </div>`).join("");
+
+  const r2 = meta.r2;
+  let qual, cls;
+  if (r2 >= 0.95) { qual = "⭐ Excellent (R² ≥ 0,95)"; cls = "qual-excellent"; }
+  else if (r2 >= 0.85) { qual = "✅ Très bon (R² ≥ 0,85)"; cls = "qual-good"; }
+  else { qual = "⚠️ Acceptable (R² < 0,85)"; cls = "qual-fair"; }
+  document.getElementById("qualBadgeBox").innerHTML = `<span class="qual-badge ${cls}">${qual}</span>
+    <p class="text-muted mt-2 mb-0" style="font-size:.75rem">Le modèle explique <strong style="color:#10b981">${(r2*100).toFixed(1)}%</strong> de la variance des prix immobiliers.</p>`;
+}
+
+/* ── MODEL COMPARISON (Phase 2) ───────────────────────────────── */
+const MODEL_LABELS = {
+  LinearRegression: "Linear Regression",
+  RandomForestRegressor: "Random Forest",
+  GradientBoostingRegressor: "Gradient Boosting",
+  XGBRegressor: "XGBoost",
+};
+
+function renderModelComparison(comparison, selected, xgbAvailable) {
+  const tbody = document.querySelector("#modelComparisonTable tbody");
+  if (!comparison) { tbody.innerHTML = `<tr><td colspan="6" class="text-muted">Comparaison indisponible.</td></tr>`; return; }
+
+  const rows = Object.entries(comparison)
+    .sort((a, b) => a[1].rmse - b[1].rmse)
+    .map(([name, m]) => {
+      const isBest = name === selected;
+      const label = MODEL_LABELS[name] || name;
+      return `
+        <tr class="${isBest ? 'table-success' : ''}">
+          <td class="fw-semibold">${label}</td>
+          <td class="text-end">${Number(m.mae).toLocaleString()}</td>
+          <td class="text-end">${Number(m.rmse).toLocaleString()}</td>
+          <td class="text-end">${m.r2}</td>
+          <td class="text-end">${m.mape_pct}%</td>
+          <td>${isBest ? '<span class="badge bg-success">Sélectionné</span>' : ''}</td>
+        </tr>`;
+    }).join("");
+
+  tbody.innerHTML = rows;
+
+  if (!xgbAvailable) {
+    tbody.innerHTML += `<tr><td colspan="6" class="text-muted small">XGBoost non disponible dans cet environnement — comparaison limitée aux 3 autres modèles.</td></tr>`;
+  }
+}
+
+
+/* ── FEATURE IMPORTANCE CHART ──────────────────────────────── */
+function renderFeatChart(importances) {
+  dc("feat");
+  const labels = importances.map(f => f.feature);
+  const data   = importances.map(f => f.importance);
+  const ctx = document.getElementById("featChart").getContext("2d");
+  charts["feat"] = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Importance (%)", data,
+        backgroundColor: PALETTE.slice(0, labels.length).map(c => c + "CC"),
+        borderColor: PALETTE.slice(0, labels.length),
+        borderWidth: 1, borderRadius: 6 }]
+    },
+    options: {
+      ...CHART_BASE,
+      indexAxis: "y",
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x.toFixed(1)}%` } } },
+      scales: {
+        x: { ...CHART_BASE.scales.x, ticks: { ...CHART_BASE.scales.x.ticks, callback: v => v + "%" } },
+        y: { ...CHART_BASE.scales.y }
+      }
+    }
+  });
+}
+
+/* ── XAI BARS ──────────────────────────────────────────────── */
+function renderXAI(groups) {
+  const max = Math.max(...groups.map(g => g.pct));
+  document.getElementById("xaiBars").innerHTML = groups.map((g, i) => `
+    <div class="feat-row">
+      <div class="feat-lbl">
+        <span class="feat-name">${g.label}</span>
+        <span class="feat-pct" style="color:${PALETTE[i]}">${g.pct.toFixed(1)}%</span>
+      </div>
+      <div class="feat-bar-bg">
+        <div class="feat-bar" style="width:${(g.pct/max*100).toFixed(1)}%;background:${PALETTE[i]}"></div>
+      </div>
+    </div>`).join("");
+}
+
+/* ── ERROR HISTOGRAM ────────────────────────────────────────── */
+function renderHistogram(hist) {
+  dc("hist");
+  const colors = hist.counts.map((_, i) => {
+    const mid = hist.edges[i] + (hist.edges[i+1] - hist.edges[i]) / 2;
+    return mid < 0 ? "rgba(16,185,129,.65)" : mid > 0 ? "rgba(239,68,68,.65)" : "rgba(79,70,229,.65)";
+  });
+  const ctx = document.getElementById("histChart").getContext("2d");
+  charts["hist"] = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: hist.labels,
+      datasets: [{ label: "Nb prédictions", data: hist.counts, backgroundColor: colors, borderRadius: 4, borderSkipped: false }]
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: (items) => `Erreur ≈ ${items[0].label} MAD`,
+        label: ctx => ` ${ctx.parsed.y} prédictions`
+      }}},
+      scales: {
+        x: { ...CHART_BASE.scales.x, title: { display: true, text: "Erreur (prix prédit − prix réel)", color: "#64748b", font: { size: 10 } } },
+        y: { ...CHART_BASE.scales.y, title: { display: true, text: "Fréquence", color: "#64748b", font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+/* ── BIAS STATS ─────────────────────────────────────────────── */
+function renderBiasStats(hist) {
+  const biasNormalized = Math.min(1, Math.max(0, (hist.pct_over / 100)));
+  const needleLeft = (biasNormalized * 100).toFixed(0);
+  document.getElementById("biasStats").innerHTML = `
+    <div class="row g-2 mb-3">
+      <div class="col-6 text-center p-2 rounded" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2)">
+        <div style="font-size:1.1rem;font-weight:700;color:#10b981">${hist.pct_under}%</div>
+        <div style="font-size:.7rem;color:var(--muted)">Sous-estimation</div>
+        <div style="font-size:.7rem;color:#10b981">Bonne affaire</div>
+      </div>
+      <div class="col-6 text-center p-2 rounded" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)">
+        <div style="font-size:1.1rem;font-weight:700;color:#ef4444">${hist.pct_over}%</div>
+        <div style="font-size:.7rem;color:var(--muted)">Sur-estimation</div>
+        <div style="font-size:.7rem;color:#ef4444">Prix gonflé</div>
+      </div>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Biais du modèle</div>
+    <div class="bias-bar"><div class="bias-needle" style="left:${needleLeft}%"></div></div>
+    <div class="d-flex justify-content-between" style="font-size:.68rem;color:var(--muted);margin-top:2px">
+      <span>Sous-estime</span><span>Équilibré</span><span>Sur-estime</span>
+    </div>
+    <div class="mt-2 text-center" style="font-size:.75rem;color:var(--muted)">
+      Erreur moyenne : <strong style="color:#fff">${Number(hist.mean_error).toLocaleString()} MAD</strong>
+      &nbsp;·&nbsp; Écart-type : <strong style="color:#fff">${Number(hist.std_error).toLocaleString()} MAD</strong>
+    </div>`;
+}
+
+/* ── CITY CHART ─────────────────────────────────────────────── */
+function renderCityChart(biz) {
+  dc("city");
+  const cities = Object.keys(biz.price_by_city);
+  const prices = Object.values(biz.price_by_city);
+  const ctx = document.getElementById("cityChart").getContext("2d");
+  charts["city"] = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: cities,
+      datasets: [{ label: "Prix moyen (MAD)", data: prices,
+        backgroundColor: cities.map(c => (CITY_COLORS[c] || "#4f46e5") + "AA"),
+        borderColor: cities.map(c => CITY_COLORS[c] || "#4f46e5"),
+        borderWidth: 2, borderRadius: 6 }]
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => " " + pFmt(ctx.parsed.y) } } },
+      scales: {
+        x: { ...CHART_BASE.scales.x },
+        y: { ...CHART_BASE.scales.y, ticks: { ...CHART_BASE.scales.y.ticks, callback: v => (v/1000000).toFixed(1)+"M" } }
+      }
+    }
+  });
+}
+
+/* ── BUSINESS INSIGHTS ─────────────────────────────────────── */
+function renderInsights(meta, biz, imp) {
+  const insights = [
+    { icon: "🏆", title: "Variable la plus influente",
+      desc: `La variable <strong>${imp[0]?.feature}</strong> contribue à <strong>${imp[0]?.importance}%</strong> du pouvoir prédictif du modèle. La surface est l'indicateur clé du prix immobilier dans ce dataset.` },
+    { icon: "💰", title: "Prix du marché",
+      desc: `Le prix moyen est de <strong>${pFmt(biz.avg_price)}</strong> (médiane : <strong>${pFmt(biz.median_price)}</strong>). L'écart entre les deux indique une distribution légèrement asymétrique vers les prix élevés.` },
+    { icon: "📐", title: "Surface typique",
+      desc: `Les biens du dataset ont une surface moyenne de <strong>${biz.avg_surface} m²</strong>. La corrélation surface/prix est capturée à ${imp.find(f=>f.key==="surface")?.importance||"N/A"}% par le modèle.` },
+    { icon: "🛏️", title: "Configuration type",
+      desc: `<strong>${biz.avg_chambres.toFixed(1)} chambre(s)</strong> en moyenne. Le nombre de chambres contribue à ${imp.find(f=>f.key==="chambres")?.importance||"N/A"}% de la prédiction.` },
+    { icon: "🎯", title: "Précision du modèle",
+      desc: `Le modèle atteint R²=<strong>${meta.r2}</strong> avec une erreur de <strong>${meta.mape_pct}%</strong> en moyenne — équivalent à ±${pFmt(meta.mae)} sur un bien à prix moyen.` },
+    { icon: "🏙️", title: "Couverture géographique",
+      desc: `<strong>${biz.n_cities} villes</strong> couvertes : ${Object.entries(biz.city_counts).map(([c,n])=>`${c} (${n})`).join(", ")}.` },
+    { icon: "🏗️", title: "Équipements du dataset",
+      desc: `<strong>${biz.pct_ascenseur}%</strong> des biens ont un ascenseur · <strong>${biz.pct_parking}%</strong> un parking · <strong>${biz.pct_terrasse}%</strong> une terrasse.` },
+  ];
+  document.getElementById("insightsList").innerHTML = insights.map(ins => `
+    <div class="insight-pill">
+      <div class="insight-emoji">${ins.icon}</div>
+      <div class="insight-body">
+        <div class="insight-t">${ins.title}</div>
+        <div class="insight-d">${ins.desc}</div>
+      </div>
+    </div>`).join("");
+}
+
+/* ── CHAMBRES DONUT ─────────────────────────────────────────── */
+function renderChambresChart(dist) {
+  dc("chambres");
+  const ctx = document.getElementById("chambresChart").getContext("2d");
+  charts["chambres"] = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(dist).map(k => k + " chambre" + (k > 1 ? "s" : "")),
+      datasets: [{
+        data: Object.values(dist),
+        backgroundColor: PALETTE.slice(0, 4),
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      /*
+        BUGFIX — three changes here fix the overflow:
+
+        1. responsive:true  — chart resizes when the window resizes (required).
+
+        2. maintainAspectRatio:false  — this is the primary fix.  Previously
+           set to true, Chart.js computed height = width * (1/cutout aspect).
+           In the col-lg-4 column (~33% viewport) that height could be 300+px,
+           far exceeding the card and overflowing into the Biais card below.
+           With false, Chart.js fills the .chart-canvas-wrapper div (220px),
+           never growing larger than its container.
+
+        3. legend.position:"bottom" instead of "right" — in a narrow column
+           a right-side legend forces the donut into a thin vertical slice,
+           which Chart.js then compensates for by making it taller.  Moving
+           the legend below keeps the donut circular and properly sized.
+      */
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "65%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#94a3b8",
+            font: { size: 11 },
+            boxWidth: 12,
+            padding: 12,
+            /*
+              usePointStyle: true draws a circle instead of a rectangle —
+              avoids a wide legend box that wraps and changes the card height.
+            */
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = ((ctx.parsed / total) * 100).toFixed(1);
+              return ` ${ctx.label} : ${ctx.parsed} biens (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ── CITY PRICE TABLE ───────────────────────────────────────── */
+function renderCityPriceTable(biz) {
+  const maxPrice = Math.max(...Object.values(biz.price_by_city));
+  const sortedCities = Object.entries(biz.price_by_city).sort((a,b) => b[1]-a[1]);
+  document.getElementById("cityPriceTable").innerHTML = sortedCities.map(([city, price]) => `
+    <div class="city-row">
+      <div class="city-dot" style="background:${CITY_COLORS[city]||"#4f46e5"}"></div>
+      <span class="city-name">${city}</span>
+      <div class="city-bar-bg">
+        <div class="city-bar" style="width:${(price/maxPrice*100).toFixed(0)}%;background:${CITY_COLORS[city]||"#4f46e5"}"></div>
+      </div>
+      <span class="city-price">${pFmt(price)}</span>
+      <span class="badge" style="background:rgba(255,255,255,.06);color:var(--muted);font-size:.68rem">${biz.city_counts[city]}</span>
+    </div>`).join("");
+}
+
+/* ── PRECISION DISTRIBUTION ─────────────────────────────────── */
+function renderPrecisionChart(scatter) {
+  dc("precision");
+  const diffs = scatter.actual.map((a, i) => {
+    const pct = Math.abs((scatter.predicted[i] - a) / a * 100);
+    return pct;
+  });
+  const buckets = [
+    { label: "< 2%",      min: 0,  max: 2,  color: "#10b981" },
+    { label: "2% – 5%",   min: 2,  max: 5,  color: "#06b6d4" },
+    { label: "5% – 10%",  min: 5,  max: 10, color: "#f59e0b" },
+    { label: "10% – 20%", min: 10, max: 20, color: "#f97316" },
+    { label: "> 20%",     min: 20, max: Infinity, color: "#ef4444" },
+  ];
+  const counts = buckets.map(b => diffs.filter(d => d >= b.min && d < b.max).length);
+  const ctx = document.getElementById("precisionChart").getContext("2d");
+  charts["precision"] = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: buckets.map(b => b.label),
+      datasets: [{ label: "Nb prédictions", data: counts,
+        backgroundColor: buckets.map(b => b.color + "BB"),
+        borderColor: buckets.map(b => b.color),
+        borderWidth: 2, borderRadius: 6 }]
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        label: ctx => ` ${ctx.parsed.y} biens (${(ctx.parsed.y/scatter.actual.length*100).toFixed(0)}% du panel)`
+      }}},
+      scales: {
+        x: { ...CHART_BASE.scales.x, title: { display: true, text: "Erreur relative |prédit − réel| / réel", color:"#64748b", font:{size:10} } },
+        y: { ...CHART_BASE.scales.y }
+      }
+    }
+  });
+}
+
+/* ── RETRAIN ─────────────────────────────────────────────────── */
+async function retrainModel() {
+  spinner("Ré-entraînement du modèle Random Forest…");
+  try {
+    const r = await fetch("/api/model-info");
+    const d = await r.json();
+    stopSpinner();
+    toast(`Modèle prêt — R²=${d.r2} MAE=${Number(d.mae).toLocaleString()} MAD`, "success");
+    // Destroy all charts and reload
+    Object.keys(charts).forEach(k => { if(charts[k]) charts[k].destroy(); delete charts[k]; });
+    document.getElementById("mlContent").classList.add("d-none");
+    document.getElementById("mlLoading").classList.remove("d-none");
+    loadDashboard();
+  } catch(e) {
+    stopSpinner();
+    toast("Erreur: " + e.message, "danger");
+  }
+}
+
+/*
+  Window resize handler.
+  Chart.js responsive:true already calls .resize() internally via ResizeObserver,
+  but only when the canvas element itself changes size.  Because .chart-canvas-wrapper
+  has a fixed pixel height (set inline), the canvas never changes height on resize —
+  only width changes.  Chart.js handles width resizing automatically.
+
+  The explicit handler below is a safety net: if the layout reflows (e.g., Bootstrap
+  breakpoint change from col-lg-4 to col-12 on mobile), it forces all charts to
+  recalculate and redraw within their new wrapper bounds.
+*/
+let _resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    Object.values(charts).forEach(chart => {
+      if (chart && typeof chart.resize === "function") {
+        chart.resize();
+      }
+    });
+  }, 150);  /* debounce — avoid thrashing during drag-resize */
+});
+
+document.addEventListener("DOMContentLoaded", loadDashboard);
+</script>
+{% endblock %}

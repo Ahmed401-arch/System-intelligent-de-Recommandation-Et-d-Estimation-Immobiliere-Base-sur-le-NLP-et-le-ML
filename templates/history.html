@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Historique — ApartmentAI{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Mes recherches</h4>
+  <button class="btn btn-sm btn-outline-danger" onclick="clearAll()"><i class="bi bi-trash me-1"></i>Tout effacer</button>
+</div>
+<div id="histList"><div class="text-muted text-center py-5"><div class="spinner-border text-primary mb-3"></div><div>Chargement…</div></div></div>
+<nav id="histPagination" class="mt-3 d-none"><ul class="pagination justify-content-center"></ul></nav>
+{% endblock %}
+{% block scripts %}
+<script>
+let _histPage = 1;
+const _histLimit = 10;
+
+async function loadHistory(page=1){
+  _histPage = page;
+  const r=await fetch(`/api/history?page=${page}&limit=${_histLimit}`);
+  if(r.status===401){window.location="/login";return}
+  const data=await r.json();
+  // Backward-compatible: support both the new {items,total,...} shape
+  // and a plain array (in case an older cached response is hit).
+  const items = Array.isArray(data) ? data : (data.items || []);
+  const totalPages = Array.isArray(data) ? 1 : (data.total_pages || 1);
+  const el=document.getElementById("histList");
+  if(!items.length){
+    el.innerHTML='<div class="text-center text-muted py-5"><i class="bi bi-search" style="font-size:3rem;opacity:.3"></i><p class="mt-3">Aucune recherche enregistrée.</p><a href="/" class="btn btn-primary">Lancer une recherche</a></div>';
+    document.getElementById("histPagination").classList.add("d-none");
+    return;
+  }
+  el.innerHTML=items.map(s=>`
+    <div class="list-item" id="h${s.id}">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1" style="font-size:.92rem">"${s.original_query?.slice(0,80)||"—"}"</div>
+          <div class="d-flex flex-wrap gap-2 mb-1">
+            ${s.city?`<span class="apt-badge"><i class="bi bi-geo-alt"></i>${s.city}</span>`:""}
+            ${s.budget?`<span class="apt-badge"><i class="bi bi-cash"></i>${Number(s.budget).toLocaleString("fr-MA")} MAD</span>`:""}
+            ${s.surface?`<span class="apt-badge"><i class="bi bi-rulers"></i>${s.surface} m²</span>`:""}
+            ${s.bedrooms?`<span class="apt-badge"><i class="bi bi-door-open"></i>${s.bedrooms} ch.</span>`:""}
+            <span class="badge bg-success-subtle">${s.results_count} résultat(s)</span>
+          </div>
+          <div class="list-meta"><i class="bi bi-calendar3 me-1"></i>${s.date?.slice(0,16)||"—"}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-primary" onclick="reuse(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+            <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="delHistory(${s.id})">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>`).join("");
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages){
+  const nav = document.getElementById("histPagination");
+  const ul  = nav.querySelector("ul");
+  if(totalPages <= 1){ nav.classList.add("d-none"); return; }
+  nav.classList.remove("d-none");
+  let html = "";
+  for(let p=1;p<=totalPages;p++){
+    html += `<li class="page-item ${p===_histPage?'active':''}">
+      <a class="page-link" href="#" onclick="loadHistory(${p});return false;">${p}</a>
+    </li>`;
+  }
+  ul.innerHTML = html;
+}
+
+async function delHistory(id){
+  await fetch("/api/history/"+id,{method:"DELETE"});
+  document.getElementById("h"+id)?.remove();
+  toast("Recherche supprimée","info");
+  loadHistory(_histPage);
+}
+
+async function clearAll(){
+  if(!confirm("Effacer tout l'historique ?")) return;
+  await fetch("/api/history",{method:"DELETE"});
+  loadHistory(1);
+  toast("Historique effacé","info");
+}
+
+function reuse(s){
+  const q=s.original_query||"";
+  sessionStorage.setItem("reuseQuery",q);
+  window.location="/";
+}
+
+document.addEventListener("DOMContentLoaded",()=>loadHistory(1));
+</script>
+{% endblock %}

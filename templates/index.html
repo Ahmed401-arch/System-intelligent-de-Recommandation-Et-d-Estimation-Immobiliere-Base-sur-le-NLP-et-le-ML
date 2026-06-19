@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}ApartmentAI — Recherche Intelligente{% endblock %}
+{% block content %}
+
+<!-- HERO -->
+<div class="hero-section text-center mb-5">
+  <div class="hero-badge mb-3"><i class="bi bi-cpu me-2"></i>Intelligence Artificielle · NLP · Recommandation</div>
+  <h1 class="hero-title">Trouvez votre appartement idéal</h1>
+  <p class="hero-sub">Décrivez en français, anglais, arabe ou darija — notre IA extrait tout automatiquement.</p>
+</div>
+
+<!-- STEP TRACKER -->
+<div class="step-tracker mb-4">
+  <div class="step active" id="s1"><span>1</span><small>Analyse</small></div>
+  <div class="step-line"></div>
+  <div class="step" id="s2"><span>2</span><small>Profil</small></div>
+  <div class="step-line"></div>
+  <div class="step" id="s3"><span>3</span><small>Prompt</small></div>
+  <div class="step-line"></div>
+  <div class="step" id="s4"><span>4</span><small>Résultats</small></div>
+</div>
+
+<!-- SEARCH CARD -->
+<div class="glass-card p-4 mb-4">
+  <h5 class="fw-bold mb-3"><i class="bi bi-search text-primary me-2"></i>Décrivez votre recherche</h5>
+  <div class="chips-row mb-3">
+    <span class="text-muted small me-2">Exemples :</span>
+    <button class="ex-chip" onclick="useEx(this)">Appartement à Casa 90m² 3 chambres budget 1 million dh</button>
+    <button class="ex-chip" onclick="useEx(this)">I need a flat in Tanger 2 bedrooms 700k</button>
+    <button class="ex-chip" onclick="useEx(this)">بغيت شي appart فكازا 3 غرف ميزانية 900000 درهم</button>
+  </div>
+  <textarea id="promptInput" class="form-control search-area" rows="4"
+    placeholder="Ex : Je cherche un appartement à Casablanca de 90m² avec 3 chambres et un budget de 1 million de dirhams…"></textarea>
+  <div class="d-flex gap-2 mt-3 flex-wrap">
+    <button class="btn btn-primary px-4 fw-semibold" onclick="analyzePrompt()">
+      <i class="bi bi-cpu me-2"></i>Analyser
+    </button>
+    <button class="btn btn-outline-secondary btn-sm" onclick="resetAll()">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+    </button>
+  </div>
+  <div id="promptErr" class="alert alert-danger mt-3 d-none small"></div>
+</div>
+
+<!-- NLP RESULT -->
+<div id="secAnalysis" class="d-none mb-4">
+  <div class="glass-card p-4 mb-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-accent me-2"></i>Analyse NLP</h5>
+    <div id="langBadge" class="mb-3"></div>
+    <div class="row g-3" id="nlpGrid"></div>
+  </div>
+
+  <!-- Smart suggestions -->
+  <div id="secSuggestions" class="glass-card p-4 mb-4 d-none">
+    <h5 class="fw-bold mb-2"><i class="bi bi-lightbulb text-warning me-2"></i>Suggestions intelligentes</h5>
+    <p class="text-muted small mb-3">Basées sur les statistiques de notre base de données</p>
+    <div id="suggGrid" class="row g-3"></div>
+  </div>
+
+  <!-- Missing fields form -->
+  <div id="secMissing" class="glass-card p-4 mb-4 d-none">
+    <h5 class="fw-bold mb-2"><i class="bi bi-pencil-square text-warning me-2"></i>Compléter le profil</h5>
+    <p class="text-muted small mb-3">Renseignez uniquement les champs manquants</p>
+    <div id="dynForm" class="row g-3"></div>
+    <div id="formErr" class="alert alert-danger mt-3 d-none small"></div>
+    <button class="btn btn-success mt-3 px-4 fw-semibold" onclick="completeProfile()">
+      <i class="bi bi-check-circle me-2"></i>Valider et rechercher
+    </button>
+  </div>
+  <div id="secComplete" class="text-center d-none">
+    <button class="btn btn-success btn-lg px-5 fw-bold" onclick="completeProfile()">
+      <i class="bi bi-lightning-charge me-2"></i>Trouver les meilleurs appartements
+    </button>
+  </div>
+</div>
+
+<!-- OPTIMIZED PROMPT -->
+<div id="secPrompt" class="glass-card p-4 mb-4 d-none">
+  <h5 class="fw-bold mb-3"><i class="bi bi-file-text text-success me-2"></i>Prompt optimisé (IA)</h5>
+  <pre id="promptBox" class="code-box"></pre>
+</div>
+
+<!-- RESULTS -->
+<div id="secResults" class="d-none">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h5 class="fw-bold mb-0"><i class="bi bi-award text-warning me-2"></i>Recommandations</h5>
+    <div class="d-flex gap-2 align-items-center">
+      <span id="resSummary" class="badge bg-success fs-6"></span>
+      <button class="btn btn-sm btn-outline-danger" id="btnPDF" onclick="exportPDF()">
+        <i class="bi bi-file-pdf me-1"></i>PDF
+      </button>
+    </div>
+  </div>
+  <div id="relaxedWarn" class="alert alert-warning small d-none"></div>
+  <div id="noRes" class="alert alert-warning d-none"></div>
+  <div class="row g-4" id="resGrid"></div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/app.js"></script>
+<script>
+// Reuse query from history page
+document.addEventListener("DOMContentLoaded",()=>{
+  const q=sessionStorage.getItem("reuseQuery");
+  if(q){
+    const ta=document.getElementById("promptInput");
+    if(ta){ta.value=q;sessionStorage.removeItem("reuseQuery")}
+  }
+});
+</script>
+{% endblock %}

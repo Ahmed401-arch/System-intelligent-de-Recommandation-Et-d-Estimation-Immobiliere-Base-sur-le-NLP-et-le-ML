@@ -1,0 +1,252 @@
+/* ═══════════════════════════════════════════════════
+   ApartmentAI PFE — main.css
+   Dark theme · Professional · Responsive
+═══════════════════════════════════════════════════ */
+:root {
+  --primary:    #4f46e5;
+  --primary-dk: #3730a3;
+  --accent:     #06b6d4;
+  --success:    #10b981;
+  --warning:    #f59e0b;
+  --danger:     #ef4444;
+  --bg:         #0f172a;
+  --surface:    #1e293b;
+  --surface2:   #263045;
+  --border:     rgba(255,255,255,0.07);
+  --text:       #f1f5f9;
+  --muted:      #94a3b8;
+  --gold:       #fbbf24;
+  --silver:     #94a3b8;
+  --bronze:     #cd7f32;
+  --radius:     14px;
+  --radius-sm:  8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:#38bdf8}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+
+/* ── Navbar ─────────────────────────────────────── */
+.navbar-main{
+  background:linear-gradient(90deg,#0f172a 0%,#1a2540 100%);
+  border-bottom:1px solid var(--border);
+  padding:12px 0;
+  backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:1000;
+}
+.navbar-brand{font-size:1.2rem;letter-spacing:-.3px}
+.text-accent{color:var(--accent)}
+.nav-link{color:var(--muted)!important;border-radius:var(--radius-sm);padding:6px 12px!important;transition:all .2s}
+.nav-link:hover,.nav-link.active{color:var(--text)!important;background:var(--surface2)}
+
+/* ── Glass cards ─────────────────────────────────── */
+.glass-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:0 4px 20px rgba(0,0,0,.2);
+  transition:box-shadow .2s;
+}
+.glass-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.3)}
+
+/* ── KPI cards ───────────────────────────────────── */
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 16px;text-align:center;
+  transition:transform .2s,box-shadow .2s;
+}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.kpi-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto 12px}
+.kpi-val{font-size:1.8rem;font-weight:800;color:var(--text);line-height:1}
+.kpi-label{font-size:.78rem;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.05em}
+
+/* ── Hero ────────────────────────────────────────── */
+.hero-section{padding:40px 0 20px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(79,70,229,.12);border:1px solid rgba(79,70,229,.3);
+  color:#a5b4fc;font-size:.8rem;padding:6px 16px;border-radius:20px;
+}
+.hero-title{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;background:linear-gradient(135deg,var(--text) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.hero-sub{font-size:1.05rem;color:var(--muted);max-width:600px;margin:0 auto}
+
+/* ── Step tracker ────────────────────────────────── */
+.step-tracker{display:flex;align-items:center;justify-content:center;gap:0}
+.step{display:flex;flex-direction:column;align-items:center;gap:4px}
+.step span{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .3s}
+.step small{font-size:.68rem;color:var(--muted);transition:color .3s}
+.step.active span{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 0 0 4px rgba(79,70,229,.25)}
+.step.active small{color:var(--primary);font-weight:600}
+.step.done span{background:var(--success);border-color:var(--success);color:#fff}
+.step.done small{color:var(--success)}
+.step-line{flex:1;height:2px;background:var(--border);max-width:80px;margin-bottom:16px}
+
+/* ── Forms ───────────────────────────────────────── */
+.form-control,.form-select{
+  background:var(--surface2)!important;
+  border:1px solid var(--border)!important;
+  color:var(--text)!important;
+  border-radius:var(--radius-sm)!important;
+  transition:border-color .2s,box-shadow .2s;
+}
+.form-control::placeholder{color:var(--muted)!important}
+.form-control:focus,.form-select:focus{
+  border-color:var(--primary)!important;
+  box-shadow:0 0 0 3px rgba(79,70,229,.2)!important;
+  outline:none!important;
+}
+.form-select option{background:var(--surface)}
+.form-label{font-size:.85rem;color:var(--muted);font-weight:500}
+.prompt-area{resize:vertical;font-size:1rem;line-height:1.6}
+.invalid-feedback{color:#fca5a5!important;font-size:.8rem}
+
+/* ── Buttons ─────────────────────────────────────── */
+.btn-primary{background:var(--primary)!important;border-color:var(--primary)!important;font-weight:600;border-radius:var(--radius-sm)!important;transition:all .2s!important}
+.btn-primary:hover{background:var(--primary-dk)!important;transform:translateY(-1px);box-shadow:0 4px 16px rgba(79,70,229,.4)!important}
+.btn-success{background:var(--success)!important;border-color:var(--success)!important;font-weight:600;border-radius:var(--radius-sm)!important}
+.btn-outline-primary{border-color:var(--primary)!important;color:var(--primary)!important;border-radius:var(--radius-sm)!important}
+.btn-outline-primary:hover{background:var(--primary)!important;color:#fff!important}
+.btn-outline-danger{border-color:var(--danger)!important;color:var(--danger)!important;border-radius:var(--radius-sm)!important}
+.btn-outline-danger:hover{background:var(--danger)!important;color:#fff!important}
+
+/* ── Example chips ───────────────────────────────── */
+.chips-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ex-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:.77rem;padding:4px 12px;cursor:pointer;transition:all .15s}
+.ex-chip:hover{border-color:var(--primary);color:var(--text);background:rgba(79,70,229,.15)}
+
+/* ── NLP Cards ───────────────────────────────────── */
+.nlp-entity{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:12px}
+.nlp-entity.detected{border-color:rgba(16,185,129,.35)}
+.nlp-entity.missing{border-color:rgba(245,158,11,.3)}
+.nlp-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.nlp-lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.nlp-val{font-size:.95rem;font-weight:600}
+.conf-bar-bg{background:var(--surface);border-radius:4px;height:5px;overflow:hidden;margin-top:4px}
+.conf-bar{height:5px;border-radius:4px;transition:width .6s ease}
+
+/* ── Prompt box ──────────────────────────────────── */
+.prompt-box{background:#0d1b2a;border:1px solid var(--border);border-radius:var(--radius-sm);color:#a5f3fc;padding:18px 20px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.87rem;line-height:1.7;white-space:pre-wrap;overflow-x:auto}
+
+/* ── Apt recommendation cards ────────────────────── */
+.apt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:transform .2s,box-shadow .2s;height:100%}
+.apt-card:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.apt-card.rank-1{border-color:var(--gold)}
+.apt-card.rank-2{border-color:var(--silver)}
+.apt-card.rank-3{border-color:var(--bronze)}
+.apt-header{padding:14px 18px 10px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border)}
+.apt-price{font-size:1.25rem;font-weight:700}
+.apt-savings{font-size:.73rem;color:var(--success);display:flex;align-items:center;gap:3px}
+.apt-body{padding:14px 18px}
+.apt-badge{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:.75rem;padding:3px 10px;margin:2px;color:var(--muted)}
+.apt-score{padding:10px 18px 14px}
+.score-bar-bg{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;margin:6px 0}
+.score-bar{height:7px;border-radius:4px;transition:width .8s ease}
+.breakdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px}
+.bd-item{background:var(--surface2);border-radius:6px;padding:5px 8px;font-size:.73rem;display:flex;justify-content:space-between}
+.bd-lbl{color:var(--muted)}
+.bd-val{font-weight:700}
+
+/* ── Explainable AI ──────────────────────────────── */
+.explain-box{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:.82rem}
+.explain-item{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.explain-item:last-child{margin-bottom:0}
+
+/* ── Fav button ──────────────────────────────────── */
+.fav-btn{background:transparent;border:none;cursor:pointer;font-size:1.2rem;transition:transform .15s;padding:2px 6px}
+.fav-btn:hover{transform:scale(1.25)}
+.fav-btn.active{filter:drop-shadow(0 0 4px rgba(239,68,68,.7))}
+
+/* ── History / Favorites rows ────────────────────── */
+.list-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:8px;transition:border-color .2s}
+.list-item:hover{border-color:rgba(79,70,229,.4)}
+.list-meta{font-size:.78rem;color:var(--muted)}
+
+/* ── Map page ────────────────────────────────────── */
+#map{height:560px;border-radius:var(--radius);border:1px solid var(--border);z-index:1}
+
+/* ── Alerts ──────────────────────────────────────── */
+.alert-danger{background:rgba(239,68,68,.1)!important;border-color:rgba(239,68,68,.3)!important;color:#fca5a5!important;border-radius:var(--radius-sm)!important}
+.alert-warning{background:rgba(245,158,11,.1)!important;border-color:rgba(245,158,11,.3)!important;color:#fcd34d!important;border-radius:var(--radius-sm)!important}
+.alert-success{background:rgba(16,185,129,.1)!important;border-color:rgba(16,185,129,.3)!important;color:#6ee7b7!important;border-radius:var(--radius-sm)!important}
+
+/* ── Badges ──────────────────────────────────────── */
+.badge.bg-primary-subtle{background:rgba(79,70,229,.2)!important;color:#a5b4fc!important}
+.badge.bg-success-subtle{background:rgba(16,185,129,.15)!important;color:#6ee7b7!important}
+.badge.bg-warning-subtle{background:rgba(245,158,11,.15)!important;color:#fcd34d!important}
+
+/* ── Spinner overlay ─────────────────────────────── */
+.spinner-overlay{position:fixed;inset:0;background:rgba(15,23,42,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px 56px;text-align:center}
+
+/* ── Toast ───────────────────────────────────────── */
+.toast{background:var(--surface)!important;border:1px solid var(--border)!important;color:var(--text)!important}
+
+/* ── Auth pages ──────────────────────────────────── */
+.auth-card{max-width:440px;margin:80px auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px}
+.auth-logo{font-size:2rem;font-weight:800;text-align:center;margin-bottom:8px}
+.auth-sub{text-align:center;color:var(--muted);font-size:.9rem;margin-bottom:28px}
+
+/* ── Suggestion pill ─────────────────────────────── */
+.suggest-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);color:#67e8f9;border-radius:20px;font-size:.8rem;padding:4px 12px;cursor:pointer;transition:all .15s;margin:3px}
+.suggest-pill:hover{background:rgba(6,182,212,.2)}
+
+/* ── Lang badge ──────────────────────────────────── */
+.lang-badge{font-size:.72rem;padding:3px 8px;border-radius:20px;background:rgba(79,70,229,.2);color:#a5b4fc;border:1px solid rgba(79,70,229,.3)}
+
+/* ── Charts ──────────────────────────────────────── */
+/*
+  BUGFIX: The previous rule `canvas { max-height: 280px }` was a blunt global
+  constraint that conflicted with Chart.js responsive sizing on doughnut/pie
+  charts.  When Chart.js tries to honour a canvas height= attribute AND
+  maintainAspectRatio:true simultaneously while a CSS max-height clamps the
+  element, the internal pixel buffer can exceed the visible box, causing
+  overflow into adjacent cards.
+
+  The correct approach is:
+  1. Remove the global canvas clamp.
+  2. Let each chart-card control its own height via a wrapper <div>.
+  3. Chart.js's responsive:true then scales the canvas to fill that wrapper.
+*/
+.chart-canvas-wrapper {
+  position: relative;   /* Chart.js requires a positioned parent for responsive */
+  width: 100%;
+  /* height is set inline per chart via data-height attribute or a utility class */
+}
+.chart-canvas-wrapper canvas {
+  display: block;       /* removes the inline-block gap that can shift layout  */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Table ───────────────────────────────────────── */
+.table{color:var(--text)!important}
+.table-dark{background:var(--surface)!important;--bs-table-bg:var(--surface);--bs-table-border-color:var(--border)}
+.table th{color:var(--muted)!important;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;font-weight:500;border-color:var(--border)!important}
+.table td{border-color:var(--border)!important;font-size:.9rem;vertical-align:middle}
+.table tbody tr:hover{background:var(--surface2)!important}
+
+/* ── Responsive ──────────────────────────────────── */
+@media(max-width:576px){
+  .hero-section{padding:24px 0 12px}
+  .step-line{max-width:32px}
+  .apt-price{font-size:1.05rem}
+  .auth-card{margin:30px auto;padding:28px 20px}
+  #map{height:380px}
+}
+
+/* ── Phase 4: Feedback widget (like/dislike/rating) ────────── */
+.feedback-widget{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.feedback-widget .like-btn.active{background:#10b981;color:#fff;border-color:#10b981}
+.feedback-widget .dislike-btn.active{background:#ef4444;color:#fff;border-color:#ef4444}
+.star-rating{display:inline-flex;gap:2px;margin-left:6px}
+.star-rating .star-icon{cursor:pointer;color:#f59e0b;font-size:1rem;transition:transform .1s}
+.star-rating .star-icon:hover{transform:scale(1.2)}
+
+/* ── Phase 3: Similar apartments list ──────────────────────── */
+.similar-section{border-top:1px solid var(--border);padding-top:10px}
+.similar-list{display:flex;flex-direction:column;gap:8px}
+.similar-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.85rem}
+

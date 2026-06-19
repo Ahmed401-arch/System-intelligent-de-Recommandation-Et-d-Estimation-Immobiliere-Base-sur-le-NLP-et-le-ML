@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Carte — ApartmentAI{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+#map{height:580px;border-radius:14px;border:1px solid rgba(255,255,255,.07)}
+.leaflet-popup-content-wrapper{background:#1e293b;border:1px solid rgba(255,255,255,.1);color:#f1f5f9;border-radius:10px}
+.leaflet-popup-tip{background:#1e293b}
+.leaflet-popup-content{margin:12px 16px;font-size:.85rem;line-height:1.6}
+.map-panel{background:#1e293b;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.city-btn{background:#263045;border:1px solid rgba(255,255,255,.07);color:#94a3b8;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.82rem;transition:all .15s;margin:2px}
+.city-btn:hover,.city-btn.active{background:#4f46e5;border-color:#4f46e5;color:#fff}
+.stat-card{background:#263045;border-radius:8px;padding:9px 12px;text-align:center;margin-bottom:6px}
+.stat-card strong{display:block;font-size:1.1rem;font-weight:700}
+.stat-card span{font-size:.7rem;color:#94a3b8;text-transform:uppercase}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.8rem;color:#94a3b8;margin-bottom:4px}
+.legend-dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;flex-shrink:0}
+.map-count-badge{background:rgba(79,70,229,.2);border:1px solid rgba(79,70,229,.3);color:#a5b4fc;border-radius:20px;padding:3px 12px;font-size:.78rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0"><i class="bi bi-map text-primary me-2"></i>Carte Interactive</h4>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="map-count-badge" id="mapCountTop">—</span>
+    <span class="map-count-badge" id="mapCountAll">—</span>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-3">
+    <div class="map-panel mb-3">
+      <p class="fw-semibold mb-2" style="font-size:.88rem"><i class="bi bi-funnel me-1 text-primary"></i>Filtrer par ville</p>
+      <div id="cityBtns"></div>
+    </div>
+    <div class="map-panel mb-3">
+      <p class="fw-semibold mb-2" style="font-size:.88rem"><i class="bi bi-info-circle me-1 text-accent"></i>Légende</p>
+      <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>⭐ Top 5 recommandations</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Prix ≤ 800k MAD</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Prix 800k–1.5M MAD</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Prix > 1.5M MAD</div>
+    </div>
+    <div class="map-panel">
+      <p class="fw-semibold mb-2" style="font-size:.88rem"><i class="bi bi-bar-chart me-1 text-primary"></i>Stats ville</p>
+      <div id="mapStats"></div>
+    </div>
+  </div>
+  <div class="col-lg-9">
+    <div id="map"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const CITIES = ["Casablanca","Dar Bouazza","Marrakech","Meknès","Tanger"];
+let map, allMarkers=[], allData=[], topData=[], topIds=new Set(), currentCity="";
+
+function initMap(){
+  map = L.map("map",{zoomControl:true}).setView([33.5,-6.5],6);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:"© OpenStreetMap", maxZoom:18
+  }).addTo(map);
+}
+
+function priceColor(p){
+  if(p < 800000)  return "#10b981";
+  if(p < 1500000) return "#f59e0b";
+  return "#ef4444";
+}
+
+function makeIcon(apt){
+  const isTop = topIds.has(apt.id);
+  if(isTop){
+    return L.divIcon({className:"",iconAnchor:[14,14],iconSize:[28,28],
+      html:`<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">⭐</div>`});
+  }
+  const col = priceColor(apt.prix);
+  return L.divIcon({className:"",iconAnchor:[10,10],iconSize:[20,20],
+    html:`<div style="width:16px;height:16px;border-radius:50%;background:${col};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`});
+}
+
+function popupHtml(apt){
+  const isTop = topIds.has(apt.id);
+  const topBadge = isTop ? `<div style="color:#fbbf24;font-weight:700;margin-bottom:4px">⭐ Top recommandation</div>` : "";
+  return `${topBadge}
+    <strong style="font-size:.92rem">${apt.quartier} · ${apt.ville}</strong><br/>
+    💰 <strong>${Number(apt.prix).toLocaleString("fr-MA")} MAD</strong><br/>
+    📐 ${apt.surface} m² &nbsp;|&nbsp; 🛏️ ${apt.chambres} ch.<br/>
+    ${apt.ascenseur==="Yes" ? "🛗 Ascenseur " : ""}${apt.parking==="Yes" ? "🚗 Parking" : ""}`;
+}
+
+function renderMarkers(data){
+  allMarkers.forEach(m => map.removeLayer(m));
+  allMarkers = [];
+
+  // Sort: non-top first, top last (so top renders on top)
+  const nonTop = data.filter(a => !topIds.has(a.id));
+  const top    = data.filter(a =>  topIds.has(a.id));
+  [...nonTop, ...top].forEach(apt => {
+    if(!apt.lat || !apt.lng) return;
+    const m = L.marker([apt.lat, apt.lng], {icon: makeIcon(apt), zIndexOffset: topIds.has(apt.id)?1000:0});
+    m.bindPopup(popupHtml(apt));
+    m.addTo(map);
+    allMarkers.push(m);
+  });
+
+  document.getElementById("mapCountAll").textContent = `${data.length} biens affichés`;
+  document.getElementById("mapCountTop").textContent = `⭐ ${topIds.size} recommandation(s)`;
+  updateStats(data);
+}
+
+function updateStats(data){
+  if(!data.length){ document.getElementById("mapStats").innerHTML=""; return; }
+  const avg  = Math.round(data.reduce((s,a)=>s+a.prix,0)/data.length);
+  const avgS = Math.round(data.reduce((s,a)=>s+a.surface,0)/data.length);
+  document.getElementById("mapStats").innerHTML=`
+    <div class="stat-card"><strong>${data.length}</strong><span>Biens</span></div>
+    <div class="stat-card"><strong>${Number(avg).toLocaleString("fr-MA")}</strong><span>Prix moyen MAD</span></div>
+    <div class="stat-card"><strong>${avgS} m²</strong><span>Surface moy.</span></div>`;
+}
+
+async function filterCity(btn, city){
+  document.querySelectorAll(".city-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentCity = city;
+  let data;
+  if(city){
+    const r = await fetch("/api/map-city/"+encodeURIComponent(city));
+    data = await r.json();
+  } else {
+    data = allData;
+  }
+  renderMarkers(data);
+  if(data.length > 0){
+    const lat = data.reduce((s,a)=>s+a.lat,0)/data.length;
+    const lng = data.reduce((s,a)=>s+a.lng,0)/data.length;
+    map.setView([lat, lng], city ? 11 : 6);
+  }
+}
+
+async function loadInitial(){
+  // Load the last recommendation top IDs from sessionStorage
+  try{
+    const stored = sessionStorage.getItem("lastTopIds");
+    if(stored) topIds = new Set(JSON.parse(stored));
+  }catch(e){}
+
+  const r = await fetch("/api/map-data?limit=500");
+  allData  = await r.json();
+  renderMarkers(allData);
+
+  // Build city buttons
+  const btns = document.getElementById("cityBtns");
+  btns.innerHTML = "";
+  const allBtn = document.createElement("button");
+  allBtn.className="city-btn active"; allBtn.textContent="Toutes";
+  allBtn.onclick = () => filterCity(allBtn,"");
+  btns.appendChild(allBtn);
+  CITIES.forEach(c => {
+    const b = document.createElement("button");
+    b.className="city-btn"; b.textContent=c;
+    b.onclick = () => filterCity(b, c);
+    btns.appendChild(b);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{initMap(); loadInitial()});
+</script>
+{% endblock %}

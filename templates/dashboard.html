@@ -1,0 +1,778 @@
+{% extends "base.html" %}
+{% block title %}Dashboard IA — ApartmentAI{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Dashboard-specific styles ───────────────────────── */
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.section-header h5{margin:0;font-weight:700;font-size:1rem}
+.section-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+
+/* Profile card */
+.profile-ring{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff;flex-shrink:0}
+.profile-tag{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:.78rem;padding:3px 10px;margin:2px;color:var(--muted)}
+
+/* Score gauge */
+.gauge-wrap{position:relative;width:80px;height:80px}
+.gauge-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:1.1rem;font-weight:800}
+.gauge-sub{font-size:.6rem;color:var(--muted);line-height:1}
+
+/* Insight cards */
+.insight-card{border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;border:1px solid}
+.insight-card.info   {background:rgba(6,182,212,.07);border-color:rgba(6,182,212,.25)}
+.insight-card.success{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.25)}
+.insight-card.warning{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.25)}
+.insight-emoji{font-size:1.4rem;line-height:1;flex-shrink:0;margin-top:1px}
+.insight-title{font-size:.85rem;font-weight:700;margin-bottom:2px}
+.insight-text{font-size:.78rem;color:var(--muted);line-height:1.5}
+
+/* Rec card */
+.rec-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;transition:border-color .2s}
+.rec-card:hover{border-color:rgba(79,70,229,.5)}
+.rec-price{font-size:1.15rem;font-weight:700}
+.rec-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:20px;font-size:.72rem;padding:2px 8px;margin:2px;color:var(--muted)}
+.score-ring{width:48px;height:48px;flex-shrink:0}
+
+/* Feature importance */
+.fi-bar-bg{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;margin-top:4px}
+.fi-bar{height:6px;border-radius:4px;transition:width .8s ease}
+
+/* Timeline */
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.tl-line{width:1px;background:var(--border);flex-grow:1;margin:0 4px}
+
+/* Explain box */
+.xai-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.xai-row:last-child{border-bottom:none}
+.xai-bar-wrap{width:90px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.xai-bar-fill{height:6px;border-radius:3px;transition:width .7s ease}
+
+/* Deal badge */
+.deal-good  {background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;border-radius:8px;padding:4px 10px;font-size:.75rem}
+.deal-fair  {background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fcd34d;border-radius:8px;padding:4px 10px;font-size:.75rem}
+.deal-over  {background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:8px;padding:4px 10px;font-size:.75rem}
+
+/* History timeline */
+.hist-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.hist-row:last-child{border-bottom:none}
+.hist-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0}
+.hist-query{font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.hist-meta{font-size:.72rem;color:var(--muted)}
+
+/* Loading skeleton */
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface) 50%,var(--surface2) 75%);background-size:400% 100%;animation:shimmer 1.5s infinite;border-radius:8px;height:20px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ── PAGE HEADER ──────────────────────────────────────────── -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-0"><i class="bi bi-cpu text-primary me-2"></i>Tableau de bord IA</h4>
+    <p class="text-muted small mb-0">Analyse personnalisée basée sur votre activité</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <span class="text-muted small">Bonjour, <strong class="text-white">{{ user.username }}</strong> 👋</span>
+    <button class="btn btn-sm btn-outline-primary" onclick="refreshDash()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Actualiser
+    </button>
+  </div>
+</div>
+
+<!-- ── LOADING SKELETON ────────────────────────────────────── -->
+<div id="dashLoading">
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="kpi-card"><div class="skel mb-2" style="height:40px;width:40px;margin:0 auto;border-radius:10px"></div><div class="skel mt-2 mx-auto" style="width:60px"></div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card"><div class="skel mb-2" style="height:40px;width:40px;margin:0 auto;border-radius:10px"></div><div class="skel mt-2 mx-auto" style="width:60px"></div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card"><div class="skel mb-2" style="height:40px;width:40px;margin:0 auto;border-radius:10px"></div><div class="skel mt-2 mx-auto" style="width:60px"></div></div></div>
+    <div class="col-6 col-md-3"><div class="kpi-card"><div class="skel mb-2" style="height:40px;width:40px;margin:0 auto;border-radius:10px"></div><div class="skel mt-2 mx-auto" style="width:60px"></div></div></div>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT (hidden until loaded) ─────────────────── -->
+<div id="dashContent" class="d-none">
+
+  <!-- ═══ ROW 1: KPIs ═══════════════════════════════════════ -->
+  <div class="row g-3 mb-4" id="kpiRow"></div>
+
+  <!-- ═══ ROW 2: AI Profile + Smart Insights ════════════════ -->
+  <div class="row g-3 mb-4">
+
+    <!-- AI User Profile -->
+    <div class="col-lg-5">
+      <div class="glass-card p-4 h-100">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(79,70,229,.15)"><i class="bi bi-person-circle text-primary"></i></div>
+          <h5>Profil utilisateur IA</h5>
+        </div>
+        <div id="userProfileCard">
+          <p class="text-muted small">Chargement…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Smart Insights -->
+    <div class="col-lg-7">
+      <div class="glass-card p-4 h-100">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(6,182,212,.12)"><i class="bi bi-lightbulb text-info"></i></div>
+          <h5>Insights IA</h5>
+          <span class="badge bg-primary-subtle ms-auto" id="insightCount">—</span>
+        </div>
+        <div id="insightsBox">
+          <p class="text-muted small">Analyse en cours…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROW 3: Activity Chart + City Distribution ══════════ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Activity Timeline Chart -->
+    <div class="col-lg-7">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(16,185,129,.12)"><i class="bi bi-graph-up-arrow text-success"></i></div>
+          <h5>Activité — 14 derniers jours</h5>
+        </div>
+        <canvas id="timelineChart" height="140"></canvas>
+      </div>
+    </div>
+
+    <!-- City Preference Chart -->
+    <div class="col-lg-5">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(245,158,11,.12)"><i class="bi bi-geo-alt text-warning"></i></div>
+          <h5>Villes recherchées</h5>
+        </div>
+        <canvas id="cityChart" height="160"></canvas>
+        <div id="noCityData" class="text-center text-muted py-3 d-none" style="font-size:.85rem">
+          Aucune donnée de ville disponible.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROW 4: Top Recommendations (AI-generated) ══════════ -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(251,191,36,.12)"><i class="bi bi-stars" style="color:#fbbf24"></i></div>
+          <h5>Top recommandations pour vous</h5>
+          <span class="badge ms-auto" style="background:rgba(251,191,36,.15);color:#fcd34d;font-size:.72rem">
+            Basé sur votre profil IA
+          </span>
+        </div>
+        <div id="topRecsSection">
+          <p class="text-muted small">Calcul des recommandations personnalisées…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROW 5: Budget Analysis + ML Model Info ═════════════ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Budget analysis -->
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(16,185,129,.12)"><i class="bi bi-cash-stack text-success"></i></div>
+          <h5>Analyse budgétaire</h5>
+        </div>
+        <div id="budgetAnalysis"></div>
+      </div>
+    </div>
+
+    <!-- ML Model card -->
+    <div class="col-lg-6">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(139,92,246,.12)"><i class="bi bi-robot" style="color:#a78bfa"></i></div>
+          <h5>Modèle ML — Estimation prix</h5>
+        </div>
+        <div id="mlModelCard"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROW 6: Recent Search History ══════════════════════ -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(79,70,229,.12)"><i class="bi bi-clock-history text-primary"></i></div>
+          <h5>Historique récent</h5>
+          <a href="/history" class="btn btn-sm btn-outline-primary ms-auto" style="font-size:.75rem">Voir tout</a>
+        </div>
+        <div id="historySection"></div>
+      </div>
+    </div>
+
+    <!-- Favorites quick view -->
+    <div class="col-lg-5">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(239,68,68,.12)"><i class="bi bi-heart-fill text-danger"></i></div>
+          <h5>Favoris récents</h5>
+          <a href="/favorites" class="btn btn-sm btn-outline-primary ms-auto" style="font-size:.75rem">Voir tout</a>
+        </div>
+        <div id="favsSection"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROW 6B: Market Intelligence (Phase 5/6) ════════════ -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(6,182,212,.12)"><i class="bi bi-graph-up text-info"></i></div>
+          <h5>Prix moyen par ville</h5>
+        </div>
+        <canvas id="marketCityChart" height="160"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="glass-card p-4">
+        <div class="section-header">
+          <div class="section-icon" style="background:rgba(16,185,129,.12)"><i class="bi bi-trophy text-success"></i></div>
+          <h5>Quartiers les plus chers</h5>
+        </div>
+        <div id="expensiveNeighborhoods"></div>
+        <h5 class="mt-3">Quartiers les moins chers</h5>
+        <div id="cheapNeighborhoods"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROW 7: Quick actions ═══════════════════════════════ -->
+  <div class="glass-card p-4">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(245,158,11,.12)"><i class="bi bi-lightning-charge text-warning"></i></div>
+      <h5>Actions rapides</h5>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="/" class="btn btn-primary"><i class="bi bi-search me-2"></i>Nouvelle recherche</a>
+      <a href="/map" class="btn btn-outline-primary"><i class="bi bi-map me-2"></i>Carte interactive</a>
+      <a href="/history" class="btn btn-outline-secondary"><i class="bi bi-clock-history me-2"></i>Mon historique</a>
+      <a href="/favorites" class="btn btn-outline-secondary"><i class="bi bi-heart me-2"></i>Mes favoris</a>
+    </div>
+  </div>
+
+</div><!-- end dashContent -->
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════
+   DASHBOARD IA — Complete JavaScript
+   All data computed locally. No external API calls.
+══════════════════════════════════════════════════════════ */
+
+const CHART_BASE = {
+  responsive: true,
+  plugins: { legend: { labels: { color: "#94a3b8", font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } },
+    y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } }
+  }
+};
+let charts = {};
+
+function pFmt(n) { return Number(n).toLocaleString("fr-MA") + " MAD"; }
+function scoreColor(p) { return p >= 80 ? "#10b981" : p >= 60 ? "#f59e0b" : "#ef4444"; }
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+/* ── MAIN LOAD ──────────────────────────────────────────── */
+async function loadDash() {
+  try {
+    const r = await fetch("/api/dashboard");
+    if (r.status === 401) { window.location = "/login"; return; }
+    const d = await r.json();
+    if (d.error) { showFallback(d.error); return; }
+
+    document.getElementById("dashLoading").classList.add("d-none");
+    document.getElementById("dashContent").classList.remove("d-none");
+
+    renderKPIs(d.user_profile);
+    renderUserProfile(d.user_profile, d.market_stats);
+    renderInsights(d.insights);
+    renderTimeline(d.user_profile.timeline || []);
+    renderCityChart(d.user_profile.city_chart || {});
+    renderTopRecs(d.top_recs || [], d.user_profile);
+    renderBudgetAnalysis(d.user_profile, d.market_stats);
+    renderMLModel(d.ml_meta || {});
+    renderHistory(d.user_profile.recent_searches || []);
+    renderFavs(d.user_profile.recent_favs || []);
+    loadMarketIntelligence();
+  } catch(e) {
+    console.error(e);
+    showFallback("Erreur de chargement du dashboard.");
+  }
+}
+
+function showFallback(msg) {
+  document.getElementById("dashLoading").innerHTML =
+    `<div class="alert alert-warning">${msg}</div>`;
+}
+
+/* ── KPI ROW ────────────────────────────────────────────── */
+function renderKPIs(p) {
+  const kpis = [
+    { val: p.total_searches || 0,  label: "Mes recherches",    icon: "bi-search",       color: "rgba(79,70,229,.15)",  icolor: "#a5b4fc" },
+    { val: p.total_favs || 0,      label: "Favoris sauvegardés",icon: "bi-heart-fill",  color: "rgba(239,68,68,.15)", icolor: "#fca5a5" },
+    { val: 3927,                   label: "Biens disponibles",  icon: "bi-building",     color: "rgba(16,185,129,.15)", icolor: "#6ee7b7" },
+    { val: p.success_rate != null ? p.success_rate+"%" : "—",
+                                   label: "Taux de succès NLP", icon: "bi-cpu",          color: "rgba(6,182,212,.15)",  icolor: "#67e8f9" },
+  ];
+  document.getElementById("kpiRow").innerHTML = kpis.map(k => `
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:${k.color}">
+          <i class="bi ${k.icon}" style="color:${k.icolor}"></i>
+        </div>
+        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-label">${k.label}</div>
+      </div>
+    </div>`).join("");
+}
+
+/* ── USER PROFILE ───────────────────────────────────────── */
+function renderUserProfile(p, market) {
+  const el = document.getElementById("userProfileCard");
+  if (!p.has_data) {
+    el.innerHTML = `<div class="text-center py-3">
+      <i class="bi bi-search" style="font-size:2rem;opacity:.3"></i>
+      <p class="text-muted small mt-2">Faites votre première recherche pour construire votre profil IA.</p>
+      <a href="/" class="btn btn-primary btn-sm mt-1">Commencer</a>
+    </div>`; return;
+  }
+  const tags = [];
+  if (p.preferred_city) tags.push(`📍 ${p.preferred_city}`);
+  if (p.budget_avg)     tags.push(`💰 ~${Number(p.budget_avg).toLocaleString("fr-MA")} MAD`);
+  if (p.surface_avg)    tags.push(`📐 ~${p.surface_avg} m²`);
+  if (p.bedrooms_mode)  tags.push(`🛏️ ${p.bedrooms_mode} chambre(s)`);
+
+  const engPct = Math.min(100, p.engagement || 0);
+  el.innerHTML = `
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div class="profile-ring">{{ user.username[:1]|upper }}</div>
+      <div>
+        <div class="fw-bold">{{ user.username }}</div>
+        <div style="font-size:.78rem;color:var(--muted)">${p.total_searches} recherche(s) · ${p.total_favs} favori(s)</div>
+        <div class="d-flex flex-wrap gap-1 mt-1">${tags.map(t=>`<span class="profile-tag">${t}</span>`).join("")}</div>
+      </div>
+    </div>
+    <hr style="border-color:var(--border);margin:10px 0">
+    <div class="row g-2">
+      <div class="col-6">
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Engagement</div>
+        <div class="d-flex align-items-center gap-2 mt-1">
+          <div class="flex-grow-1" style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
+            <div style="width:${engPct}%;height:6px;background:var(--primary);border-radius:4px;transition:width .8s"></div>
+          </div>
+          <span style="font-size:.78rem;font-weight:600;min-width:28px">${engPct}</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Succès NLP</div>
+        <div class="d-flex align-items-center gap-2 mt-1">
+          <div class="flex-grow-1" style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
+            <div style="width:${p.success_rate||0}%;height:6px;background:#10b981;border-radius:4px;transition:width .8s"></div>
+          </div>
+          <span style="font-size:.78rem;font-weight:600;min-width:28px">${p.success_rate||0}%</span>
+        </div>
+      </div>
+    </div>
+    ${p.budget_min && p.budget_max ? `
+    <div class="mt-3 p-2 rounded" style="background:var(--surface2)">
+      <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Fourchette budgétaire</div>
+      <div style="font-size:.88rem;font-weight:600;margin-top:3px">
+        ${Number(p.budget_min).toLocaleString("fr-MA")} — ${Number(p.budget_max).toLocaleString("fr-MA")} MAD
+      </div>
+    </div>` : ""}`;
+}
+
+/* ── INSIGHTS ───────────────────────────────────────────── */
+function renderInsights(insights) {
+  const el = document.getElementById("insightsBox");
+  document.getElementById("insightCount").textContent = insights.length;
+  if (!insights.length) {
+    el.innerHTML = `<div class="text-center py-4 text-muted small">
+      <i class="bi bi-lightbulb" style="font-size:2rem;opacity:.3"></i>
+      <p class="mt-2">Les insights apparaîtront après vos premières recherches.</p>
+    </div>`; return;
+  }
+  el.innerHTML = insights.map(ins => `
+    <div class="insight-card ${ins.type}">
+      <div class="insight-emoji">${ins.icon}</div>
+      <div>
+        <div class="insight-title">${ins.title}</div>
+        <div class="insight-text">${ins.text}</div>
+      </div>
+    </div>`).join("");
+}
+
+/* ── TIMELINE CHART ─────────────────────────────────────── */
+function renderTimeline(timeline) {
+  destroyChart("timeline");
+  const labels = timeline.map(t => t.date.slice(5));   // MM-DD
+  const data   = timeline.map(t => t.count);
+  const ctx = document.getElementById("timelineChart").getContext("2d");
+  charts["timeline"] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Recherches",
+        data,
+        borderColor: "#4f46e5",
+        backgroundColor: "rgba(79,70,229,.12)",
+        fill: true,
+        tension: .4,
+        pointRadius: data.map(d => d > 0 ? 4 : 0),
+        pointBackgroundColor: "#4f46e5",
+      }]
+    },
+    options: { ...CHART_BASE, plugins: { legend: { display: false } } }
+  });
+}
+
+/* ── CITY PIE CHART ─────────────────────────────────────── */
+function renderCityChart(cityData) {
+  destroyChart("city");
+  const labels = cityData.labels || [];
+  const data   = cityData.data   || [];
+  if (!labels.length) {
+    document.getElementById("noCityData").classList.remove("d-none");
+    return;
+  }
+  const PALETTE = ["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899"];
+  const ctx = document.getElementById("cityChart").getContext("2d");
+  charts["city"] = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: PALETTE.slice(0, labels.length), borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      ...CHART_BASE,
+      cutout: "68%",
+      scales: {},
+      plugins: {
+        legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11 }, boxWidth: 12, padding: 10 } }
+      }
+    }
+  });
+}
+
+/* ── MARKET INTELLIGENCE (Phase 5/6) ──────────────────────── */
+async function loadMarketIntelligence() {
+  try {
+    const r = await fetch("/api/market-intelligence");
+    const d = await r.json();
+    if (d.error) return;
+    renderMarketCityChart(d.price_per_city || {});
+    renderNeighborhoodLists(d.most_expensive_neighborhoods || [], d.cheapest_neighborhoods || []);
+  } catch (e) {
+    console.error("market intelligence", e);
+  }
+}
+
+function renderMarketCityChart(priceData) {
+  destroyChart("marketCity");
+  const labels = priceData.labels || [];
+  const data   = priceData.data   || [];
+  if (!labels.length) return;
+  const ctx = document.getElementById("marketCityChart").getContext("2d");
+  charts["marketCity"] = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Prix moyen (MAD)",
+        data,
+        backgroundColor: "#06b6d4",
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: "#64748b", font: { size: 10 }, callback: v => Number(v).toLocaleString() }, grid: { color: "rgba(255,255,255,.04)" } }
+      }
+    }
+  });
+}
+
+function renderNeighborhoodLists(expensive, cheap) {
+  const fmt = (list, emptyMsg) => {
+    if (!list.length) return `<p class="text-muted small">${emptyMsg}</p>`;
+    return `<div class="d-flex flex-column gap-1">` + list.slice(0, 5).map(n => `
+      <div class="d-flex justify-content-between align-items-center" style="font-size:.85rem">
+        <span>${n.quartier} <span class="text-muted">(${n.ville})</span></span>
+        <span class="fw-semibold">${Number(n.avg_price).toLocaleString("fr-MA")} MAD</span>
+      </div>`).join("") + `</div>`;
+  };
+  document.getElementById("expensiveNeighborhoods").innerHTML = fmt(expensive, "Aucune donnée disponible.");
+  document.getElementById("cheapNeighborhoods").innerHTML = fmt(cheap, "Aucune donnée disponible.");
+}
+
+/* ── TOP RECOMMENDATIONS ────────────────────────────────── */
+function renderTopRecs(recs, profile) {
+  const el = document.getElementById("topRecsSection");
+  if (!recs.length) {
+    el.innerHTML = `<div class="text-center py-4 text-muted small">
+      <i class="bi bi-stars" style="font-size:2rem;opacity:.3"></i>
+      <p class="mt-2">Faites au moins une recherche pour recevoir des recommandations personnalisées.</p>
+      <a href="/" class="btn btn-primary btn-sm mt-1">Lancer une recherche</a>
+    </div>`; return;
+  }
+  const city    = profile.preferred_city || "—";
+  const budget  = profile.budget_avg    ? pFmt(profile.budget_avg) : "—";
+  const surface = profile.surface_avg   ? `${profile.surface_avg} m²` : "—";
+  const rooms   = profile.bedrooms_mode ? `${profile.bedrooms_mode} ch.` : "—";
+
+  el.innerHTML = `
+    <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded" style="background:var(--surface2);font-size:.78rem;color:var(--muted)">
+      <i class="bi bi-cpu text-primary"></i>
+      <span>Profil inféré : ville=<strong class="text-white">${city}</strong> · budget=<strong class="text-white">${budget}</strong> · surface=<strong class="text-white">${surface}</strong> · chambres=<strong class="text-white">${rooms}</strong></span>
+    </div>
+    <div class="row g-3">
+      ${recs.map((apt, i) => buildRecCard(apt, i)).join("")}
+    </div>`;
+}
+
+function buildRecCard(apt, rank) {
+  const pct  = apt.score_pct || 0;
+  const col  = scoreColor(pct);
+  const deal = apt.ml_deal_quality;
+  const dealBadge = deal === "good_deal"
+    ? `<span class="deal-good">🟢 ${apt.ml_deal_label||""}</span>`
+    : deal === "overpriced"
+    ? `<span class="deal-over">🔴 ${apt.ml_deal_label||""}</span>`
+    : apt.ml_deal_label
+    ? `<span class="deal-fair">🟡 ${apt.ml_deal_label||""}</span>`
+    : "";
+
+  const MEDALS = ["🥇","🥈","🥉"];
+  const medal  = MEDALS[rank] || `#${rank+1}`;
+
+  // XAI breakdown
+  const bd = apt.breakdown || {};
+  const xai = Object.entries(bd).map(([k,v]) => {
+    const labels = {city:"Ville",budget:"Budget",surface:"Surface",bedrooms:"Chambres"};
+    const maxPts = {city:28,budget:30,surface:22,bedrooms:20};
+    const pct2   = Math.round((v / (maxPts[k]||30)) * 100);
+    const bcolor = v > 0 ? "#10b981" : "#ef4444";
+    return `<div class="xai-row">
+      <span style="font-size:.75rem;color:var(--muted);width:80px">${labels[k]||k}</span>
+      <div class="xai-bar-wrap"><div class="xai-bar-fill" style="width:${pct2}%;background:${bcolor}"></div></div>
+      <span style="font-size:.75rem;font-weight:700;color:${bcolor};min-width:28px;text-align:right">${v>0?"+":""}${v}</span>
+    </div>`;
+  }).join("");
+
+  const predicted = apt.ml_predicted_price
+    ? `<div style="font-size:.75rem;color:var(--muted);margin-top:4px">
+         Prix marché estimé IA : <strong style="color:#a5f3fc">${pFmt(apt.ml_predicted_price)}</strong>
+       </div>` : "";
+
+  return `
+    <div class="col-md-4">
+      <div class="rec-card">
+        <div class="d-flex align-items-start justify-content-between mb-2">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span style="font-size:1.2rem">${medal}</span>
+              <span style="font-size:.78rem;font-weight:500;color:var(--muted)">#${apt.id} · ${apt.quartier}</span>
+            </div>
+            <div class="rec-price">${pFmt(apt.prix)}</div>
+            ${predicted}
+          </div>
+          <div class="text-end">
+            <div style="font-size:1.3rem;font-weight:800;color:${col}">${pct}%</div>
+            <div style="font-size:.65rem;color:var(--muted)">score IA</div>
+          </div>
+        </div>
+        <div class="mb-2">
+          <span class="rec-badge">📍 ${apt.ville}</span>
+          <span class="rec-badge">📐 ${apt.surface} m²</span>
+          <span class="rec-badge">🛏️ ${apt.chambres} ch.</span>
+          ${apt.ascenseur==="Yes"?'<span class="rec-badge">🛗</span>':""}
+          ${apt.parking  ==="Yes"?'<span class="rec-badge">🚗</span>':""}
+        </div>
+        ${dealBadge ? `<div class="mb-2">${dealBadge}</div>` : ""}
+        ${xai ? `
+          <details style="cursor:pointer">
+            <summary style="font-size:.75rem;color:var(--muted);list-style:none;display:flex;align-items:center;gap:4px">
+              <i class="bi bi-info-circle"></i> Pourquoi ce bien ?
+            </summary>
+            <div class="mt-2">${xai}</div>
+          </details>` : ""}
+      </div>
+    </div>`;
+}
+
+/* ── BUDGET ANALYSIS ────────────────────────────────────── */
+function renderBudgetAnalysis(p, market) {
+  const el = document.getElementById("budgetAnalysis");
+  if (!p.budget_avg) {
+    el.innerHTML = `<p class="text-muted small">Aucune donnée budgétaire disponible.</p>`; return;
+  }
+  const rows = [];
+  if (p.budget_min) rows.push(["Budget minimum", pFmt(p.budget_min), "#94a3b8"]);
+  if (p.budget_avg) rows.push(["Budget moyen",   pFmt(p.budget_avg), "#4f46e5"]);
+  if (p.budget_max) rows.push(["Budget maximum", pFmt(p.budget_max), "#94a3b8"]);
+  if (p.fav_price_avg) rows.push(["Prix moy. favoris", pFmt(p.fav_price_avg), "#10b981"]);
+  if (market.avg_price) rows.push(["Moy. marché " + (p.preferred_city||""), pFmt(market.avg_price), "#f59e0b"]);
+
+  el.innerHTML = rows.map(([lbl, val, col]) => `
+    <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--border)">
+      <span style="font-size:.82rem;color:var(--muted)">${lbl}</span>
+      <span style="font-size:.88rem;font-weight:600;color:${col}">${val}</span>
+    </div>`).join("");
+
+  // Mini budget trend chart if we have data
+  if (p.budget_trend && p.budget_trend.length > 2) {
+    el.innerHTML += `<div class="mt-3"><canvas id="budgetTrendChart" height="80"></canvas></div>`;
+    setTimeout(() => {
+      destroyChart("budgetTrend");
+      const ctx = document.getElementById("budgetTrendChart")?.getContext("2d");
+      if (!ctx) return;
+      charts["budgetTrend"] = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: p.budget_trend.map(t => t.date.slice(5)),
+          datasets: [{
+            label: "Budget",
+            data: p.budget_trend.map(t => t.budget),
+            borderColor: "#4f46e5",
+            backgroundColor: "rgba(79,70,229,.08)",
+            fill: true, tension: .4, pointRadius: 3,
+          }]
+        },
+        options: { ...CHART_BASE, plugins: { legend: { display: false } } }
+      });
+    }, 100);
+  }
+}
+
+/* ── ML MODEL INFO ──────────────────────────────────────── */
+function renderMLModel(meta) {
+  const el = document.getElementById("mlModelCard");
+  if (!meta.r2) {
+    el.innerHTML = `<p class="text-muted small">Modèle non entraîné. <button class="btn btn-sm btn-outline-primary" onclick="trainModel()">Entraîner</button></p>`; return;
+  }
+  const importances = meta.importances || {};
+  const MAX_IMP = Math.max(...Object.values(importances), 0.001);
+  const FEAT_LABELS = {surface:"Surface",chambres:"Chambres",salles_bain:"Sdb",etage:"Étage",ville:"Ville",quartier:"Quartier",ascenseur_enc:"Ascenseur",parking_enc:"Parking",terrasse_enc:"Terrasse"};
+  const FEAT_COLORS = ["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6","#f97316"];
+
+  const topFeats = Object.entries(importances)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, 6);
+
+  el.innerHTML = `
+    <div class="row g-2 mb-3">
+      ${[
+        ["R²",    (meta.r2||0).toFixed(3),              "#10b981"],
+        ["MAE",   Number(meta.mae||0).toLocaleString("fr-MA")+" MAD", "#f59e0b"],
+        ["MAPE",  (meta.mape_pct||0)+"%",                "#ef4444"],
+        ["Train", Number(meta.n_train||0).toLocaleString()+" obs",    "#4f46e5"],
+      ].map(([lbl,val,col])=>`
+        <div class="col-6">
+          <div class="p-2 rounded" style="background:var(--surface2);text-align:center">
+            <div style="font-size:1rem;font-weight:700;color:${col}">${val}</div>
+            <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase">${lbl}</div>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+      Importance des variables
+    </div>
+    ${topFeats.map(([feat, imp], i) => `
+      <div class="mb-2">
+        <div class="d-flex justify-content-between" style="font-size:.78rem">
+          <span style="color:var(--muted)">${FEAT_LABELS[feat]||feat}</span>
+          <span style="font-weight:600">${(imp*100).toFixed(1)}%</span>
+        </div>
+        <div class="fi-bar-bg"><div class="fi-bar" style="width:${(imp/MAX_IMP*100).toFixed(1)}%;background:${FEAT_COLORS[i]}"></div></div>
+      </div>`).join("")}
+    <div style="font-size:.7rem;color:var(--muted);margin-top:8px">
+      ${meta.model_type||"RandomForestRegressor"} · ${meta.n_estimators||120} arbres · ${meta.n_samples||0} échantillons
+    </div>`;
+}
+
+async function trainModel() {
+  const r = await fetch("/api/model-info");
+  const d = await r.json();
+  renderMLModel(d);
+}
+
+/* ── HISTORY ────────────────────────────────────────────── */
+function renderHistory(searches) {
+  const el = document.getElementById("historySection");
+  if (!searches.length) {
+    el.innerHTML = `<div class="text-center py-4 text-muted small">
+      <i class="bi bi-search" style="font-size:1.5rem;opacity:.3"></i>
+      <p class="mt-2 mb-0">Aucune recherche enregistrée.</p>
+    </div>`; return;
+  }
+  el.innerHTML = searches.slice(0,6).map(s => `
+    <div class="hist-row">
+      <div class="hist-dot"></div>
+      <div class="flex-grow-1 overflow-hidden">
+        <div class="hist-query">${s.original_query?.slice(0,65)||"—"}</div>
+        <div class="hist-meta">
+          ${s.city||"—"} · ${s.budget ? Number(s.budget).toLocaleString("fr-MA")+" MAD" : "—"} · ${s.date?.slice(0,10)||""}
+        </div>
+      </div>
+      <span class="badge" style="background:rgba(79,70,229,.15);color:#a5b4fc;flex-shrink:0">${s.results_count||0} résult.</span>
+    </div>`).join("");
+}
+
+/* ── FAVORITES ──────────────────────────────────────────── */
+function renderFavs(favs) {
+  const el = document.getElementById("favsSection");
+  if (!favs.length) {
+    el.innerHTML = `<div class="text-center py-4 text-muted small">
+      <i class="bi bi-heart" style="font-size:1.5rem;opacity:.3"></i>
+      <p class="mt-2 mb-0">Aucun favori sauvegardé.</p>
+    </div>`; return;
+  }
+  el.innerHTML = favs.map(f => {
+    const sc = f.score || 0;
+    const col = scoreColor(sc);
+    return `
+      <div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="bi bi-heart-fill text-danger" style="font-size:.85rem"></i>
+        </div>
+        <div class="flex-grow-1 overflow-hidden">
+          <div style="font-size:.85rem;font-weight:500">#${f.apartment_id} · ${f.quartier||"—"}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${f.ville||"—"} · ${Number(f.prix||0).toLocaleString("fr-MA")} MAD · ${f.surface||"—"} m²</div>
+        </div>
+        <div style="font-size:.95rem;font-weight:700;color:${col};flex-shrink:0">${sc}%</div>
+      </div>`;
+  }).join("");
+}
+
+function refreshDash() {
+  document.getElementById("dashContent").classList.add("d-none");
+  document.getElementById("dashLoading").classList.remove("d-none");
+  // Destroy all charts
+  Object.keys(charts).forEach(k => { if(charts[k]) { charts[k].destroy(); delete charts[k]; } });
+  loadDash();
+}
+
+document.addEventListener("DOMContentLoaded", loadDash);
+</script>
+{% endblock %}

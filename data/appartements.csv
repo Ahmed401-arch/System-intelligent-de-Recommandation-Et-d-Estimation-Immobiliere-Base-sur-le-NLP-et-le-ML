@@ -1,0 +1,121 @@
+id,ville,quartier,prix,surface,chambres
+0,Fès,Médina,668254,106,4
+1,Rabat,Océan,1685192,83,4
+2,Fès,Saiss,487602,40,4
+3,Tanger,Malabata,1492990,149,1
+4,Tanger,Malabata,1646840,43,2
+5,Tanger,Malabata,1343323,147,4
+6,Fès,Saiss,1597995,131,1
+7,Rabat,Salé,1995655,126,1
+8,Tanger,Centre Ville,392350,97,4
+9,Tanger,Centre Ville,1974427,99,2
+10,Rabat,Salé,1837113,91,4
+11,Marrakech,Hivernage,663360,77,1
+12,Casablanca,Anfa,1087031,78,1
+13,Marrakech,Hivernage,924529,60,3
+14,Tanger,Iberia,1305482,72,2
+15,Tanger,Centre Ville,1328914,160,4
+16,Rabat,Océan,487857,77,4
+17,Fès,Ville Nouvelle,1371727,81,1
+18,Fès,Ville Nouvelle,1047884,132,3
+19,Tanger,Malabata,839439,54,4
+20,Fès,Médina,1232075,91,1
+21,Marrakech,Guéliz,1241428,50,5
+22,Marrakech,Hivernage,1672292,130,1
+23,Casablanca,Ain Sebaâ,1929374,106,4
+24,Casablanca,Sidi Maarouf,1224898,96,2
+25,Casablanca,Sidi Maarouf,613451,45,4
+26,Fès,Ville Nouvelle,1382101,137,1
+27,Casablanca,Anfa,1081647,129,5
+28,Rabat,Hay Riad,1608225,158,3
+29,Marrakech,Daoudiate,1404259,120,1
+30,Tanger,Iberia,645976,174,3
+31,Tanger,Malabata,1683081,133,2
+32,Fès,Saiss,1510388,131,4
+33,Fès,Saiss,993185,168,3
+34,Rabat,Salé,764880,71,3
+35,Fès,Ville Nouvelle,857868,166,1
+36,Tanger,Malabata,1242163,106,4
+37,Rabat,Océan,1565399,70,3
+38,Rabat,Salé,812837,130,3
+39,Marrakech,Hivernage,1521539,51,5
+40,Marrakech,Daoudiate,1218877,151,2
+41,Tanger,Centre Ville,1193808,47,5
+42,Tanger,Centre Ville,1020317,113,4
+43,Marrakech,Daoudiate,1414323,101,1
+44,Marrakech,Hivernage,1097994,170,5
+45,Casablanca,Sidi Maarouf,601382,113,3
+46,Fès,Ville Nouvelle,1387547,114,5
+47,Rabat,Hay Riad,1037515,86,5
+48,Rabat,Salé,562677,178,3
+49,Fès,Médina,1539729,148,4
+50,Rabat,Océan,1896746,148,4
+51,Marrakech,Daoudiate,1619372,90,2
+52,Tanger,Malabata,1833342,72,1
+53,Casablanca,Anfa,1909869,123,1
+54,Tanger,Centre Ville,1407144,111,2
+55,Fès,Médina,1908702,58,4
+56,Casablanca,Ain Sebaâ,813222,64,3
+57,Marrakech,Daoudiate,1923186,46,2
+58,Rabat,Salé,1291722,111,1
+59,Casablanca,Ain Sebaâ,555836,54,2
+60,Rabat,Hay Riad,1015158,132,3
+61,Tanger,Centre Ville,1487076,93,4
+62,Rabat,Océan,593082,96,2
+63,Casablanca,Ain Sebaâ,1554515,45,1
+64,Marrakech,Guéliz,1011965,76,4
+65,Fès,Médina,1400981,40,1
+66,Tanger,Iberia,1565044,172,1
+67,Marrakech,Hivernage,1595556,156,3
+68,Tanger,Centre Ville,1811860,141,5
+69,Fès,Saiss,650170,67,2
+70,Rabat,Océan,1543046,163,4
+71,Marrakech,Daoudiate,1406996,45,2
+72,Casablanca,Maarif,481854,110,5
+73,Tanger,Malabata,932972,90,2
+74,Rabat,Hay Riad,768328,115,3
+75,Fès,Ville Nouvelle,1612690,63,1
+76,Tanger,Iberia,1044446,177,2
+77,Casablanca,Maarif,1137841,132,3
+78,Marrakech,Hivernage,720431,110,4
+79,Tanger,Iberia,810369,83,5
+80,Casablanca,Maarif,1088924,125,5
+81,Casablanca,Maarif,1617139,114,2
+82,Rabat,Hay Riad,1017386,121,3
+83,Casablanca,Maarif,1246828,129,1
+84,Marrakech,Guéliz,537265,176,5
+85,Casablanca,Ain Sebaâ,1620894,45,1
+86,Casablanca,Maarif,1006827,176,2
+87,Fès,Saiss,1494437,172,2
+88,Rabat,Agdal,874635,61,3
+89,Rabat,Océan,405632,124,3
+90,Casablanca,Maarif,1066241,85,4
+91,Rabat,Agdal,443251,114,3
+92,Marrakech,Guéliz,1881707,176,2
+93,Marrakech,Hivernage,1846578,42,2
+94,Fès,Ville Nouvelle,369748,176,3
+95,Tanger,Iberia,1981496,91,4
+96,Marrakech,Guéliz,521141,162,2
+97,Rabat,Salé,1423616,105,5
+98,Rabat,Hay Riad,947841,138,1
+99,Casablanca,Maarif,598911,155,3
+100,Rabat,Hay Riad,1858460,149,5
+101,Casablanca,Maarif,1511405,156,1
+102,Fès,Ville Nouvelle,828555,65,1
+103,Marrakech,Hivernage,1714890,121,5
+104,Casablanca,Anfa,1750573,129,4
+105,Marrakech,Guéliz,1372170,84,4
+106,Tanger,Iberia,807654,168,4
+107,Marrakech,Hivernage,367259,60,4
+108,Marrakech,Guéliz,842845,58,1
+109,Tanger,Malabata,1582703,168,4
+110,Fès,Ville Nouvelle,919073,103,3
+111,Fès,Médina,926259,91,1
+112,Rabat,Agdal,1260315,154,5
+113,Marrakech,Hivernage,1762017,117,4
+114,Casablanca,Maarif,865707,80,4
+115,Tanger,Iberia,1660661,110,2
+116,Casablanca,Anfa,1912634,148,5
+117,Marrakech,Hivernage,1570303,106,1
+118,Fès,Saiss,1503331,51,5
+119,Tanger,Iberia,1011926,135,3

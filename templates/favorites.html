@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Favoris — ApartmentAI{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="fw-bold mb-0"><i class="bi bi-heart text-danger me-2"></i>Mes favoris</h4>
+  <span class="text-muted small" id="favCount"></span>
+</div>
+<div id="favList"><div class="text-muted text-center py-5"><div class="spinner-border text-primary mb-3"></div><div>Chargement…</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadFavs(){
+  const r=await fetch("/api/favorites");
+  if(r.status===401){window.location="/login";return}
+  const data=await r.json();
+  document.getElementById("favCount").textContent=`${data.length} bien(s) sauvegardé(s)`;
+  const el=document.getElementById("favList");
+  if(!data.length){el.innerHTML='<div class="text-center text-muted py-5"><i class="bi bi-heart" style="font-size:3rem;opacity:.3"></i><p class="mt-3">Aucun favori sauvegardé.</p><a href="/" class="btn btn-primary">Trouver des appartements</a></div>';return}
+  el.innerHTML=`<div class="row g-3">${data.map(apt=>`
+    <div class="col-md-6 col-lg-4" id="fav${apt.apartment_id}">
+      <div class="apt-card rank-1">
+        <div class="apt-header">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-danger-subtle text-danger">❤️ Favori</span>
+              <span class="badge bg-primary-subtle">#${apt.apartment_id}</span>
+            </div>
+            <div class="apt-price">${Number(apt.prix||0).toLocaleString("fr-MA")} MAD</div>
+          </div>
+          <div class="text-end">
+            <div style="font-size:1.4rem;font-weight:800;color:#10b981">${apt.score||0}%</div>
+            <div style="font-size:.68rem;color:var(--muted)">score</div>
+          </div>
+        </div>
+        <div class="apt-body">
+          <span class="apt-badge"><i class="bi bi-geo-alt"></i>${apt.ville||"—"}</span>
+          <span class="apt-badge"><i class="bi bi-building"></i>${apt.quartier||"—"}</span>
+          <span class="apt-badge"><i class="bi bi-rulers"></i>${apt.surface} m²</span>
+          <span class="apt-badge"><i class="bi bi-door-open"></i>${apt.chambres} ch.</span>
+          <div class="list-meta mt-2"><i class="bi bi-bookmark me-1"></i>Sauvegardé le ${apt.date_saved?.slice(0,10)||"—"}</div>
+        </div>
+        <div class="p-3 pt-0">
+          <button class="btn btn-sm btn-outline-danger w-100" onclick="removeFav(${apt.apartment_id})">
+            <i class="bi bi-heart-break me-1"></i>Retirer des favoris
+          </button>
+        </div>
+      </div>
+    </div>`).join("")}</div>`;
+}
+
+async function removeFav(id){
+  await fetch("/api/favorites/"+id,{method:"DELETE"});
+  document.getElementById("fav"+id)?.remove();
+  toast("Retiré des favoris","info");
+}
+
+document.addEventListener("DOMContentLoaded",loadFavs);
+</script>
+{% endblock %}

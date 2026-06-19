@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Connexion — ApartmentAI{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5 col-lg-4">
+    <div class="glass-card p-4 mt-4">
+      <div class="text-center mb-4">
+        <div class="auth-icon mb-2"><i class="bi bi-person-lock"></i></div>
+        <h4 class="fw-bold">Connexion</h4>
+        <p class="text-muted small">Accédez à votre historique et favoris</p>
+      </div>
+      <div id="loginErr" class="alert alert-danger d-none small"></div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">Email</label>
+        <input type="email" id="loginEmail" class="form-control" placeholder="vous@exemple.com"/>
+      </div>
+      <div class="mb-4">
+        <label class="form-label small fw-semibold">Mot de passe</label>
+        <input type="password" id="loginPwd" class="form-control" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn btn-primary w-100 fw-semibold" onclick="doLogin()">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
+      </button>
+      <p class="text-center text-muted small mt-3">
+        Pas encore de compte ? <a href="/register" class="text-accent">Inscription</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd   = document.getElementById('loginPwd').value;
+  const err   = document.getElementById('loginErr');
+  err.classList.add('d-none');
+  try {
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pwd})
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error; err.classList.remove('d-none'); return; }
+    window.location.href = '/';
+  } catch(e) { err.textContent = 'Erreur réseau.'; err.classList.remove('d-none'); }
+}
+</script>
+{% endblock %}
