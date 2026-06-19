@@ -1,0 +1,2 @@
+# System-intelligent-de-Recommandation-Et-d-Estimation-Immobiliere-Base-sur-le-NLP-et-le-ML
+ApartmentAI est une application web intelligente qui aide les utilisateurs à trouver les appartements les plus adaptés à leurs besoins. Grâce au NLP, au Machine Learning et à un système de recommandation, elle analyse les critères de recherche, propose des logements pertinents et affiche les résultats sur une carte interactive.
